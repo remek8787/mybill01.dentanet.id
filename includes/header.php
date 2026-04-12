@@ -67,7 +67,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
       <?php if ($user): ?>
         <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
           <button id="themeToggle" class="btn btn-sm btn-outline-secondary" type="button">🌙 Dark</button>
-          <span class="badge text-bg-success"><?= e((string) $user['full_name']) ?> (<?= e((string) $user['role']) ?>)</span>
+          <span class="badge text-bg-success"><?= e((string) $user['full_name']) ?> (<?= e(displayRoleLabel($user)) ?>)</span>
           <a class="btn btn-sm btn-outline-primary" href="profile.php">Profil</a>
           <a class="btn btn-sm btn-danger" href="logout.php">Logout</a>
         </div>

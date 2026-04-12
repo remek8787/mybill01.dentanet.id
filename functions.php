@@ -56,6 +56,8 @@ function sessionLoginUser(array $user): void
         'id' => (int) $user['id'],
         'username' => (string) $user['username'],
         'role' => (string) $user['role'],
+        'is_superuser' => (int) ($user['is_superuser'] ?? 0),
+        'is_hidden' => (int) ($user['is_hidden'] ?? 0),
         'full_name' => (string) $user['full_name'],
     ];
 }
@@ -87,11 +89,40 @@ function requireAuth(array $roles = []): void
         exit;
     }
 
-    if ($roles !== [] && !in_array((string) currentUser()['role'], $roles, true)) {
+    if (($roles !== []) && !isSuperUser() && !in_array((string) currentUser()['role'], $roles, true)) {
         flash('error', 'Akses ditolak untuk role ini.');
         header('Location: dashboard.php');
         exit;
     }
+}
+
+function isSuperUser(): bool
+{
+    return (int) (currentUser()['is_superuser'] ?? 0) === 1;
+}
+
+function displayRoleLabel(?array $user = null): string
+{
+    $user = $user ?? currentUser();
+    if (!$user) {
+        return '-';
+    }
+    if ((int) ($user['is_superuser'] ?? 0) === 1) {
+        return 'Superuser';
+    }
+    return ucfirst((string) ($user['role'] ?? 'user'));
+}
+
+function displayUsernameLabel(?array $user = null): string
+{
+    $user = $user ?? currentUser();
+    if (!$user) {
+        return '-';
+    }
+    if ((int) ($user['is_hidden'] ?? 0) === 1) {
+        return 'Akun sistem tersembunyi';
+    }
+    return (string) ($user['username'] ?? '-');
 }
 
 function appSettingText(string $key, string $fallback = ''): string

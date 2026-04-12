@@ -42,6 +42,23 @@ body {
   color: var(--text);
   transition: background 0.2s ease, color 0.2s ease;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.34;
+  background-image:
+    radial-gradient(circle at 18px 18px, rgba(99, 102, 241, 0.06) 0, rgba(99, 102, 241, 0.06) 8px, transparent 8px),
+    radial-gradient(circle at 54px 54px, rgba(236, 72, 153, 0.055) 0, rgba(236, 72, 153, 0.055) 10px, transparent 10px),
+    linear-gradient(45deg, transparent 41%, rgba(245, 158, 11, 0.055) 42%, rgba(245, 158, 11, 0.055) 58%, transparent 59%),
+    linear-gradient(-45deg, transparent 41%, rgba(59, 130, 246, 0.045) 42%, rgba(59, 130, 246, 0.045) 58%, transparent 59%);
+  background-size: 72px 72px, 96px 96px, 120px 120px, 120px 120px;
+  mix-blend-mode: multiply;
+  z-index: 0;
 }
 
 button,
@@ -89,6 +106,8 @@ textarea {
   display: grid;
   grid-template-columns: 260px 1fr;
   transition: grid-template-columns 0.25s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .app-layout.sidebar-collapsed {
@@ -104,6 +123,20 @@ textarea {
   height: 100vh;
   overflow-y: auto;
   transition: transform 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.app-sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image:
+    radial-gradient(circle at 28px 28px, rgba(255, 255, 255, 0.14) 0, rgba(255, 255, 255, 0.14) 7px, transparent 7px),
+    linear-gradient(45deg, transparent 42%, rgba(251, 191, 36, 0.14) 43%, rgba(251, 191, 36, 0.14) 57%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, rgba(96, 165, 250, 0.16) 43%, rgba(96, 165, 250, 0.16) 57%, transparent 58%);
+  background-size: 78px 78px, 110px 110px, 110px 110px;
 }
 
 .app-layout.sidebar-collapsed .app-sidebar {
@@ -176,6 +209,23 @@ textarea {
   top: 0;
   z-index: 20;
   backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+
+.app-topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    linear-gradient(90deg, rgba(219, 234, 254, 0.85), rgba(243, 232, 255, 0.7) 50%, rgba(254, 249, 195, 0.5)),
+    radial-gradient(circle at right center, rgba(59, 130, 246, 0.12), transparent 26%);
+}
+
+.app-topbar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .app-main {
@@ -202,6 +252,29 @@ textarea {
 [class*="rounded-xl shadow"] {
   background: var(--card) !important;
   color: var(--text) !important;
+}
+
+.bg-white.rounded-xl.shadow,
+section.bg-white.rounded-xl.shadow,
+.stat-card,
+.info-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-white.rounded-xl.shadow::after,
+section.bg-white.rounded-xl.shadow::after,
+.stat-card::after,
+.info-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(45deg, transparent 44%, rgba(124, 58, 237, 0.06) 45%, rgba(124, 58, 237, 0.06) 55%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, rgba(59, 130, 246, 0.05) 45%, rgba(59, 130, 246, 0.05) 55%, transparent 56%);
+  background-size: 140px 140px, 140px 140px;
 }
 
 .text-slate-500,
@@ -1653,6 +1726,20 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.24);
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-sidebar-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.12) 7px, transparent 7px),
+    linear-gradient(45deg, transparent 42%, rgba(250, 204, 21, 0.14) 43%, rgba(250, 204, 21, 0.14) 57%, transparent 58%);
+  background-size: 80px 80px, 120px 120px;
 }
 
 .brand-sidebar-logo-wrap,
@@ -1696,6 +1783,15 @@ body {
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
   border: 0;
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  border: 0;
+}
+
+.badge.text-bg-success {
+  background: linear-gradient(135deg, #0f766e, #14b8a6) !important;
 }
 
 .btn-primary:hover,
@@ -1838,6 +1934,21 @@ body {
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: color-mix(in oklab, var(--card) 92%, #eff6ff 8%);
+}
+
+body[data-theme="dark"]::before {
+  opacity: 0.18;
+  mix-blend-mode: screen;
+}
+
+body[data-theme="dark"] .app-topbar::before {
+  opacity: 0.16;
+}
+
+body[data-theme="dark"] .bg-white.rounded-xl.shadow::after,
+body[data-theme="dark"] section.bg-white.rounded-xl.shadow::after,
+body[data-theme="dark"] .info-card::after {
+  opacity: 0.12;
 }
 
 .brand-logo-settings-preview {

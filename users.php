@@ -25,6 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($id > 0) {
+            $existingStmt = $pdo->prepare('SELECT is_hidden, is_superuser FROM users WHERE id = :id LIMIT 1');
+            $existingStmt->execute([':id' => $id]);
+            $existing = $existingStmt->fetch() ?: null;
+            if ($existing && (((int) ($existing['is_hidden'] ?? 0) === 1) || ((int) ($existing['is_superuser'] ?? 0) === 1))) {
+                flash('error', 'User sistem tidak bisa diedit dari panel ini.');
+                header('Location: users.php');
+                exit;
+            }
+
             if ($password !== '') {
                 $stmt = $pdo->prepare('UPDATE users SET username = :username, full_name = :full_name, role = :role, password_hash = :password_hash WHERE id = :id');
                 $stmt->execute([
@@ -67,8 +76,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete_user') {
         $id = (int) ($_POST['id'] ?? 0);
         if ($id > 0 && $id !== (int) $current['id']) {
-            $pdo->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $id]);
-            flash('success', 'User dihapus.');
+            $checkStmt = $pdo->prepare('SELECT is_hidden, is_superuser FROM users WHERE id = :id LIMIT 1');
+            $checkStmt->execute([':id' => $id]);
+            $target = $checkStmt->fetch() ?: null;
+            if ($target && (((int) ($target['is_hidden'] ?? 0) === 1) || ((int) ($target['is_superuser'] ?? 0) === 1))) {
+                flash('error', 'User sistem tidak bisa dihapus.');
+            } else {
+                $pdo->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $id]);
+                flash('success', 'User dihapus.');
+            }
         }
         header('Location: users.php');
         exit;
@@ -78,12 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $editId = (int) ($_GET['edit'] ?? 0);
 $editUser = null;
 if ($editId > 0) {
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id AND is_hidden = 0 LIMIT 1');
     $stmt->execute([':id' => $editId]);
     $editUser = $stmt->fetch() ?: null;
 }
 
-$users = $pdo->query('SELECT * FROM users ORDER BY id ASC')->fetchAll();
+$users = $pdo->query('SELECT * FROM users WHERE is_hidden = 0 ORDER BY id ASC')->fetchAll();
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -97,6 +113,7 @@ require __DIR__ . '/includes/header.php';
       <div><label class="text-sm">Nama Lengkap</label><input name="full_name" required class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editUser['full_name'] ?? '')) ?>"></div>
       <div><label class="text-sm">Username</label><input name="username" required class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editUser['username'] ?? '')) ?>"></div>
       <div><label class="text-sm">Role</label><select name="role" class="mt-1 w-full border rounded px-3 py-2"><option value="admin" <?= (($editUser['role'] ?? '') === 'admin') ? 'selected' : '' ?>>admin</option><option value="staff" <?= (($editUser['role'] ?? '') === 'staff') ? 'selected' : '' ?>>staff</option></select></div>
+      <div class="text-xs text-slate-500">Akun sistem dan superuser tersembunyi tidak akan tampil di daftar ini.</div>
       <div><label class="text-sm">Password <?= $editUser ? '(kosongkan jika tidak diubah)' : '' ?></label><input name="password" type="password" class="mt-1 w-full border rounded px-3 py-2"></div>
       <button class="bg-slate-900 text-white rounded px-4 py-2">Simpan User</button>
     </form>
@@ -112,7 +129,7 @@ require __DIR__ . '/includes/header.php';
               <td class="py-2 pr-3"><?= (int) $user['id'] ?></td>
               <td class="py-2 pr-3"><?= e((string) $user['full_name']) ?></td>
               <td class="py-2 pr-3"><?= e((string) $user['username']) ?></td>
-              <td class="py-2 pr-3"><?= e((string) $user['role']) ?></td>
+              <td class="py-2 pr-3"><?= e(displayRoleLabel($user)) ?></td>
               <td class="py-2 pr-3">
                 <a class="px-2 py-1 rounded bg-slate-200" href="users.php?edit=<?= (int) $user['id'] ?>">Edit</a>
                 <?php if ((int) $user['id'] !== (int) $current['id']): ?>

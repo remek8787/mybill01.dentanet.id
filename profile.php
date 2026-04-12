@@ -47,7 +47,7 @@ require __DIR__ . '/includes/header.php';
 
 <section class="bg-white rounded-xl shadow p-4 max-w-xl">
   <h2 class="font-semibold mb-3">Profil & Ganti Password</h2>
-  <p class="text-sm text-slate-600 mb-4">User: <b><?= e((string) $user['username']) ?></b> • Role: <b><?= e((string) $user['role']) ?></b></p>
+  <p class="text-sm text-slate-600 mb-4">User: <b><?= e(displayUsernameLabel($user)) ?></b> • Role: <b><?= e(displayRoleLabel($user)) ?></b></p>
   <form method="post" class="space-y-3">
     <div><label class="text-sm">Password Lama</label><input name="old_password" type="password" required class="mt-1 w-full border rounded px-3 py-2"></div>
     <div><label class="text-sm">Password Baru</label><input name="new_password" type="password" required class="mt-1 w-full border rounded px-3 py-2"></div>
