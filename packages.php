@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $price = normalizeCurrencyInput($_POST['price'] ?? 0);
         $description = trim((string) ($_POST['description'] ?? ''));
         $apiPlanId = trim((string) ($_POST['api_plan_id'] ?? ''));
+        $mikrotikProfileName = trim((string) ($_POST['mikrotik_profile_name'] ?? ''));
         $isActive = isset($_POST['is_active']) ? 1 : 0;
 
         if ($name === '' || $price <= 0) {
@@ -28,26 +29,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id > 0) {
             $stmt = $pdo->prepare('UPDATE packages SET name = :name, speed = :speed, price = :price,
-                description = :description, api_plan_id = :api_plan_id, is_active = :is_active WHERE id = :id');
+                description = :description, api_plan_id = :api_plan_id, mikrotik_profile_name = :mikrotik_profile_name,
+                is_active = :is_active WHERE id = :id');
             $stmt->execute([
                 ':name' => $name,
                 ':speed' => $speed,
                 ':price' => $price,
                 ':description' => $description,
                 ':api_plan_id' => $apiPlanId,
+                ':mikrotik_profile_name' => $mikrotikProfileName,
                 ':is_active' => $isActive,
                 ':id' => $id,
             ]);
             flash('success', 'Paket berhasil diperbarui.');
         } else {
-            $stmt = $pdo->prepare('INSERT INTO packages(name, speed, price, description, api_plan_id, is_active)
-                VALUES(:name, :speed, :price, :description, :api_plan_id, :is_active)');
+            $stmt = $pdo->prepare('INSERT INTO packages(name, speed, price, description, api_plan_id, mikrotik_profile_name, is_active)
+                VALUES(:name, :speed, :price, :description, :api_plan_id, :mikrotik_profile_name, :is_active)');
             $stmt->execute([
                 ':name' => $name,
                 ':speed' => $speed,
                 ':price' => $price,
                 ':description' => $description,
                 ':api_plan_id' => $apiPlanId,
+                ':mikrotik_profile_name' => $mikrotikProfileName,
                 ':is_active' => $isActive,
             ]);
             flash('success', 'Paket berhasil ditambahkan.');
@@ -100,8 +104,13 @@ require __DIR__ . '/includes/header.php';
         <input name="price" type="number" min="0" required class="mt-1 w-full border rounded px-3 py-2" value="<?= (int) ($editPackage['price'] ?? 0) ?>">
       </div>
       <div>
+        <label class="text-sm">Mapping Profile MikroTik</label>
+        <input name="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['mikrotik_profile_name'] ?? '')) ?>" placeholder="contoh: pppoe-10mb">
+        <div class="text-xs text-slate-500 mt-1">Opsional, dipakai sebagai profile default saat pilih paket pelanggan.</div>
+      </div>
+      <div>
         <label class="text-sm">API Plan ID</label>
-        <input name="api_plan_id" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['api_plan_id'] ?? '')) ?>" placeholder="opsional untuk mapping ke API">
+        <input name="api_plan_id" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['api_plan_id'] ?? '')) ?>" placeholder="opsional untuk mapping ke API lain">
       </div>
       <div>
         <label class="text-sm">Deskripsi</label>
@@ -118,7 +127,10 @@ require __DIR__ . '/includes/header.php';
   </section>
 
   <section class="bg-white rounded-xl shadow p-4 lg:col-span-2">
-    <h2 class="font-semibold mb-3">Daftar Paket</h2>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h2 class="font-semibold mb-0">Daftar Paket</h2>
+      <div class="small text-secondary">Tambahkan mapping profile agar admin lebih cepat saat input pelanggan.</div>
+    </div>
     <div class="overflow-auto">
       <table class="min-w-full text-sm js-data-table table-soft" data-page-size="10">
         <thead>
@@ -126,6 +138,7 @@ require __DIR__ . '/includes/header.php';
             <th class="py-2 pr-3">Nama</th>
             <th class="py-2 pr-3">Speed</th>
             <th class="py-2 pr-3">Harga</th>
+            <th class="py-2 pr-3">Profile MikroTik</th>
             <th class="py-2 pr-3">API ID</th>
             <th class="py-2 pr-3">Status</th>
             <th class="py-2 pr-3">Aksi</th>
@@ -133,13 +146,14 @@ require __DIR__ . '/includes/header.php';
         </thead>
         <tbody>
           <?php foreach ($packages as $package): ?>
-            <tr class="border-b">
+            <tr class="border-b align-top">
               <td class="py-2 pr-3">
                 <div class="font-semibold"><?= e((string) $package['name']) ?></div>
                 <div class="text-xs text-slate-500"><?= e((string) ($package['description'] ?? '')) ?></div>
               </td>
               <td class="py-2 pr-3"><?= e((string) ($package['speed'] ?? '-')) ?></td>
               <td class="py-2 pr-3"><?= e(rupiah((int) $package['price'])) ?></td>
+              <td class="py-2 pr-3"><?= e((string) ($package['mikrotik_profile_name'] ?? '-')) ?></td>
               <td class="py-2 pr-3"><?= e((string) ($package['api_plan_id'] ?? '-')) ?></td>
               <td class="py-2 pr-3"><span class="badge <?= ((int) $package['is_active'] === 1) ? 'text-bg-success' : 'text-bg-secondary' ?>"><?= ((int) $package['is_active'] === 1) ? 'Aktif' : 'Nonaktif' ?></span></td>
               <td class="py-2 pr-3">

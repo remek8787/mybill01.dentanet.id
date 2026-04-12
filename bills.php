@@ -62,11 +62,12 @@ if ($filterMonth >= 1 && $filterMonth <= 12) {
     $params[':month'] = $filterMonth;
 }
 if ($search !== '') {
-    $where[] = '(c.full_name LIKE :q OR c.area LIKE :q OR i.invoice_no LIKE :q OR p.name LIKE :q)';
+    $where[] = '(c.full_name LIKE :q OR c.area LIKE :q OR i.invoice_no LIKE :q OR p.name LIKE :q OR c.service_username LIKE :q)';
     $params[':q'] = '%' . $search . '%';
 }
 
 $sql = 'SELECT i.*, c.full_name AS customer_name, c.address, c.phone, c.area, c.customer_no,
+        c.service_username, c.mikrotik_profile_name, c.isolated,
         p.name AS package_name, p.speed
     FROM invoices i
     LEFT JOIN customers c ON c.id = i.customer_id
@@ -81,17 +82,23 @@ $stmt->execute($params);
 $bills = $stmt->fetchAll();
 
 $totalUnpaid = 0;
+$unpaidCustomerIds = [];
 foreach ($bills as $bill) {
     if (($bill['status'] ?? '') === 'unpaid') {
         $totalUnpaid += invoiceNetAmount($bill);
+        $unpaidCustomerIds[(int) ($bill['customer_id'] ?? 0)] = true;
     }
 }
+$unpaidCustomerCount = count($unpaidCustomerIds);
 
 require __DIR__ . '/includes/header.php';
 ?>
 
 <section class="bg-white rounded-xl shadow p-4 mb-4">
-  <h2 class="font-semibold mb-3">Daftar Invoice RT/RW Net</h2>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h2 class="font-semibold mb-0">Daftar Invoice RT/RW Net</h2>
+    <div class="small text-secondary">Filter pelanggan belum bayar per bulan, lalu lanjut cetak atau isolir dari menu MikroTik API.</div>
+  </div>
   <form class="grid md:grid-cols-5 gap-2 text-sm">
     <select name="status" class="border rounded px-3 py-2">
       <option value="">Semua Status</option>
@@ -105,7 +112,7 @@ require __DIR__ . '/includes/header.php';
         <option value="<?= $m ?>" <?= $filterMonth === $m ? 'selected' : '' ?>><?= e(monthName($m)) ?></option>
       <?php endfor; ?>
     </select>
-    <input type="text" name="q" value="<?= e($search) ?>" placeholder="Cari customer / area / invoice" class="border rounded px-3 py-2">
+    <input type="text" name="q" value="<?= e($search) ?>" placeholder="Cari customer / PPPoE / invoice" class="border rounded px-3 py-2">
     <div class="flex gap-2">
       <button class="bg-slate-900 text-white rounded px-4 py-2 w-full">Filter</button>
       <a href="bills.php" class="px-4 py-2 rounded bg-slate-200 text-slate-800">Reset</a>
@@ -114,9 +121,9 @@ require __DIR__ . '/includes/header.php';
 
   <div class="mt-4 stats-grid-4 text-sm">
     <div class="info-card"><div class="info-label">Total Invoice</div><div class="info-value"><?= count($bills) ?></div></div>
-    <div class="info-card"><div class="info-label">Belum Lunas</div><div class="info-value text-amber-600"><?= e(rupiah($totalUnpaid)) ?></div></div>
-    <div class="info-card"><div class="info-label">Provider API</div><div class="info-value text-sky-600"><?= e(appSettingText('api_provider', 'Custom API')) ?></div></div>
-    <div class="info-card"><div class="info-label">Base URL API</div><div class="info-note"><?= e(appSettingText('api_base_url', '-')) ?></div></div>
+    <div class="info-card"><div class="info-label">Pelanggan Belum Bayar</div><div class="info-value text-amber-600"><?= $unpaidCustomerCount ?></div></div>
+    <div class="info-card"><div class="info-label">Total Piutang Filter</div><div class="info-value text-amber-600"><?= e(rupiah($totalUnpaid)) ?></div></div>
+    <div class="info-card"><div class="info-label">Provider API</div><div class="info-note"><?= e(appSettingText('api_provider', 'MikroTik RouterOS / Custom API')) ?></div></div>
   </div>
 </section>
 
@@ -127,7 +134,7 @@ require __DIR__ . '/includes/header.php';
         <tr class="text-left border-b">
           <th class="py-2 pr-3">Invoice</th>
           <th class="py-2 pr-3">Customer</th>
-          <th class="py-2 pr-3">Paket</th>
+          <th class="py-2 pr-3">Paket / PPPoE</th>
           <th class="py-2 pr-3">Periode</th>
           <th class="py-2 pr-3">Tagihan</th>
           <th class="py-2 pr-3">Status</th>
@@ -146,7 +153,11 @@ require __DIR__ . '/includes/header.php';
               <div class="text-xs text-slate-500">Area: <?= e((string) ($bill['area'] ?? '-')) ?></div>
               <div class="text-xs text-slate-500">No/HP: <?= e((string) (($bill['customer_no'] ?: '-') . ' • ' . ($bill['phone'] ?: '-'))) ?></div>
             </td>
-            <td class="py-2 pr-3"><?= e(packageLabel($bill)) ?></td>
+            <td class="py-2 pr-3">
+              <div><?= e(packageLabel($bill)) ?></div>
+              <div class="text-xs text-slate-500">PPPoE: <?= e((string) ($bill['service_username'] ?: '-')) ?></div>
+              <div class="text-xs text-slate-500">Profile: <?= e((string) ($bill['mikrotik_profile_name'] ?: '-')) ?></div>
+            </td>
             <td class="py-2 pr-3"><?= e(periodLabel((int) $bill['period_month'], (int) $bill['period_year'])) ?></td>
             <td class="py-2 pr-3">
               <div><?= e(rupiah((int) $bill['amount'])) ?></div>
@@ -156,12 +167,14 @@ require __DIR__ . '/includes/header.php';
             <td class="py-2 pr-3">
               <span class="badge <?= ($bill['status'] ?? '') === 'paid' ? 'text-bg-success' : 'text-bg-warning' ?>"><?= ($bill['status'] ?? '') === 'paid' ? 'Lunas' : 'Belum Lunas' ?></span>
               <div class="text-xs text-slate-500 mt-1">Bayar: <?= e(formatDateId((string) ($bill['paid_at'] ?? ''), '-')) ?></div>
+              <div class="text-xs mt-1"><span class="badge <?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'text-bg-danger' : 'text-bg-success' ?>"><?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'Sedang diisolir' : 'Tidak diisolir' ?></span></div>
             </td>
             <td class="py-2 pr-3">
               <a class="px-2 py-1 rounded bg-slate-200 inline-block mb-1" href="bill_print.php?id=<?= (int) $bill['id'] ?>" target="_blank">Cetak Invoice</a>
               <?php if (($bill['status'] ?? '') === 'paid'): ?>
                 <a class="px-2 py-1 rounded bg-emerald-100 text-emerald-800 inline-block mb-1" href="receipt.php?id=<?= (int) $bill['id'] ?>" target="_blank">Kwitansi</a>
               <?php endif; ?>
+              <a class="px-2 py-1 rounded bg-sky-100 text-sky-800 inline-block mb-1" href="mikrotik.php">MikroTik API</a>
 
               <?php if (($bill['status'] ?? '') === 'unpaid'): ?>
                 <form method="post" class="space-y-1 mt-2">

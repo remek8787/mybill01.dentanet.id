@@ -28,7 +28,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
   <aside class="app-sidebar" id="appSidebar">
     <div class="mb-4">
       <h1 class="app-title"><?= e(companyName()) ?></h1>
-      <div class="app-subtitle">Billing RT/RW Net, SQLite, siap konek API</div>
+      <div class="app-subtitle">Billing RT/RW Net, SQLite, invoice barcode, siap konek MikroTik</div>
     </div>
 
     <?php if ($user): ?>
@@ -36,6 +36,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
         <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
         <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="bi bi-people me-2"></i>Pelanggan</a>
         <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="bi bi-router me-2"></i>Paket</a>
+        <a class="side-link <?= $currentPage === 'mikrotik.php' ? 'active' : '' ?>" href="mikrotik.php"><i class="bi bi-hdd-network me-2"></i>MikroTik API</a>
         <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="bi bi-calendar2-check me-2"></i>Generate Billing</a>
         <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="bi bi-receipt-cutoff me-2"></i>Invoice</a>
         <?php if (($user['role'] ?? '') === 'admin'): ?>

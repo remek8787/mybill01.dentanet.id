@@ -14,7 +14,8 @@ if ($id <= 0) {
 }
 
 $stmt = $pdo->prepare('SELECT i.*, c.full_name AS customer_name, c.address, c.phone, c.area, c.customer_no,
-        c.api_customer_id, c.router_name, p.name AS package_name, p.speed
+        c.api_customer_id, c.router_name, c.service_username, c.mikrotik_profile_name,
+        p.name AS package_name, p.speed
     FROM invoices i
     LEFT JOIN customers c ON c.id = i.customer_id
     LEFT JOIN packages p ON p.id = i.package_id
@@ -29,6 +30,7 @@ if (!$invoice) {
 }
 
 $invoiceNo = ensureInvoiceNumber($pdo, (int) $invoice['id']);
+$barcode = barcodeSvg($invoiceNo, 78);
 ?>
 <!doctype html>
 <html lang="id">
@@ -53,6 +55,9 @@ $invoiceNo = ensureInvoiceNumber($pdo, (int) $invoice['id']);
     .text-right { text-align: right; }
     .total { font-size: 18px; font-weight: 800; }
     .note { margin-top: 20px; font-size: 12px; color: #475569; }
+    .barcode-wrap { margin: 18px 0 10px; border: 1px dashed #cbd5e1; padding: 12px; text-align: center; }
+    .barcode-wrap svg { max-width: 100%; height: auto; }
+    .meta-chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #e2e8f0; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
     @media print {
       body { background: #fff; padding: 0; }
       .no-print { display: none !important; }
@@ -74,10 +79,10 @@ $invoiceNo = ensureInvoiceNumber($pdo, (int) $invoice['id']);
         <div class="sub">Telp: <?= e(appSettingText('company_phone', '-')) ?></div>
       </div>
       <div class="text-right">
+        <div class="meta-chip"><?= ($invoice['status'] ?? '') === 'paid' ? 'LUNAS' : 'BELUM LUNAS' ?></div>
         <div><b><?= e($invoiceNo) ?></b></div>
         <div class="sub">Periode: <?= e(periodLabel((int) $invoice['period_month'], (int) $invoice['period_year'])) ?></div>
         <div class="sub">Jatuh tempo: <?= e(formatDateId((string) ($invoice['due_date'] ?? ''), '-')) ?></div>
-        <div class="sub">Status: <?= ($invoice['status'] ?? '') === 'paid' ? 'Lunas' : 'Belum Lunas' ?></div>
       </div>
     </div>
 
@@ -91,11 +96,16 @@ $invoiceNo = ensureInvoiceNumber($pdo, (int) $invoice['id']);
       </table>
       <table>
         <tr><td>Paket</td><td><?= e(packageLabel($invoice)) ?></td></tr>
-        <tr><td>API Customer ID</td><td><?= e((string) ($invoice['api_customer_id'] ?: '-')) ?></td></tr>
-        <tr><td>Router Name</td><td><?= e((string) ($invoice['router_name'] ?: '-')) ?></td></tr>
-        <tr><td>Provider API</td><td><?= e(appSettingText('api_provider', '-')) ?></td></tr>
-        <tr><td>Base URL API</td><td><?= e(appSettingText('api_base_url', '-')) ?></td></tr>
+        <tr><td>Username PPPoE</td><td><?= e((string) ($invoice['service_username'] ?: '-')) ?></td></tr>
+        <tr><td>Profile MikroTik</td><td><?= e((string) ($invoice['mikrotik_profile_name'] ?: '-')) ?></td></tr>
+        <tr><td>Router</td><td><?= e((string) ($invoice['router_name'] ?: appSettingText('mikrotik_router_name', '-'))) ?></td></tr>
+        <tr><td>Provider</td><td><?= e(appSettingText('api_provider', '-')) ?></td></tr>
       </table>
+    </div>
+
+    <div class="barcode-wrap">
+      <?= $barcode ?>
+      <div class="sub">Barcode nomor invoice untuk referensi cepat admin / penagihan lapangan.</div>
     </div>
 
     <table>

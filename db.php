@@ -51,6 +51,7 @@ function initializeDatabase(PDO $pdo): void
             price INTEGER NOT NULL DEFAULT 0,
             description TEXT,
             api_plan_id TEXT,
+            mikrotik_profile_name TEXT,
             is_active INTEGER NOT NULL DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )'
@@ -67,6 +68,13 @@ function initializeDatabase(PDO $pdo): void
             package_id INTEGER,
             api_customer_id TEXT,
             router_name TEXT,
+            service_type TEXT NOT NULL DEFAULT "pppoe",
+            service_username TEXT,
+            mikrotik_secret_id TEXT,
+            mikrotik_profile_name TEXT,
+            mikrotik_last_status TEXT,
+            isolated INTEGER NOT NULL DEFAULT 0,
+            last_synced_at TEXT,
             status TEXT NOT NULL DEFAULT "active" CHECK(status IN ("active", "suspended", "inactive")),
             due_day INTEGER NOT NULL DEFAULT 10,
             join_date TEXT,
@@ -102,7 +110,34 @@ function initializeDatabase(PDO $pdo): void
         )'
     );
 
+    runMigrations($pdo);
     seedDefaults($pdo);
+}
+
+function runMigrations(PDO $pdo): void
+{
+    ensureColumn($pdo, 'packages', 'mikrotik_profile_name', 'TEXT');
+
+    ensureColumn($pdo, 'customers', 'service_type', 'TEXT NOT NULL DEFAULT "pppoe"');
+    ensureColumn($pdo, 'customers', 'service_username', 'TEXT');
+    ensureColumn($pdo, 'customers', 'mikrotik_secret_id', 'TEXT');
+    ensureColumn($pdo, 'customers', 'mikrotik_profile_name', 'TEXT');
+    ensureColumn($pdo, 'customers', 'mikrotik_last_status', 'TEXT');
+    ensureColumn($pdo, 'customers', 'isolated', 'INTEGER NOT NULL DEFAULT 0');
+    ensureColumn($pdo, 'customers', 'last_synced_at', 'TEXT');
+}
+
+function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+{
+    $stmt = $pdo->query('PRAGMA table_info(' . $table . ')');
+    $columns = $stmt->fetchAll();
+    foreach ($columns as $info) {
+        if (($info['name'] ?? null) === $column) {
+            return;
+        }
+    }
+
+    $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $column . ' ' . $definition);
 }
 
 function seedDefaults(PDO $pdo): void
@@ -121,19 +156,26 @@ function seedDefaults(PDO $pdo): void
     $insertSetting->execute([':key' => 'company_name', ':value' => APP_NAME]);
     $insertSetting->execute([':key' => 'company_address', ':value' => 'Isi alamat kantor / basecamp RT/RW Net']);
     $insertSetting->execute([':key' => 'company_phone', ':value' => '0812xxxxxxxx']);
-    $insertSetting->execute([':key' => 'company_note', ':value' => 'Billing RT/RW Net siap konek API dan bisa diubah dari menu pengaturan.']);
-    $insertSetting->execute([':key' => 'api_provider', ':value' => 'Custom API']);
+    $insertSetting->execute([':key' => 'company_note', ':value' => 'Billing RT/RW Net siap konek MikroTik API, cetak invoice barcode, dan bisa diubah dari menu pengaturan.']);
+    $insertSetting->execute([':key' => 'api_provider', ':value' => 'MikroTik RouterOS / Custom API']);
     $insertSetting->execute([':key' => 'api_base_url', ':value' => '']);
     $insertSetting->execute([':key' => 'api_token', ':value' => '']);
     $insertSetting->execute([':key' => 'api_username', ':value' => '']);
     $insertSetting->execute([':key' => 'api_password', ':value' => '']);
     $insertSetting->execute([':key' => 'api_secret', ':value' => '']);
-    $insertSetting->execute([':key' => 'api_notes', ':value' => 'Simpan endpoint, token, atau catatan integrasi API di sini.']);
+    $insertSetting->execute([':key' => 'api_notes', ':value' => 'Untuk integrasi custom selain MikroTik, simpan endpoint, token, atau catatan di sini.']);
+    $insertSetting->execute([':key' => 'mikrotik_host', ':value' => '']);
+    $insertSetting->execute([':key' => 'mikrotik_port', ':value' => '8728']);
+    $insertSetting->execute([':key' => 'mikrotik_use_ssl', ':value' => '0']);
+    $insertSetting->execute([':key' => 'mikrotik_timeout', ':value' => '10']);
+    $insertSetting->execute([':key' => 'mikrotik_username', ':value' => '']);
+    $insertSetting->execute([':key' => 'mikrotik_password', ':value' => '']);
+    $insertSetting->execute([':key' => 'mikrotik_router_name', ':value' => '']);
 
     $pkgCount = (int) $pdo->query('SELECT COUNT(*) FROM packages')->fetchColumn();
     if ($pkgCount === 0) {
-        $pdo->exec("INSERT INTO packages(name, speed, price, description, is_active) VALUES
-            ('Paket Basic', '10 Mbps', 100000, 'Contoh paket awal untuk pelanggan RT/RW Net.', 1),
-            ('Paket Pro', '20 Mbps', 150000, 'Paket lebih cepat untuk pelanggan aktif.', 1)");
+        $pdo->exec("INSERT INTO packages(name, speed, price, description, api_plan_id, mikrotik_profile_name, is_active) VALUES
+            ('Paket Basic', '10 Mbps', 100000, 'Contoh paket awal untuk pelanggan RT/RW Net.', '', 'basic', 1),
+            ('Paket Pro', '20 Mbps', 150000, 'Paket lebih cepat untuk pelanggan aktif.', '', 'pro', 1)");
     }
 }

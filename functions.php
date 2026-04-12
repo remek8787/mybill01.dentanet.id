@@ -94,6 +94,11 @@ function appSettingInt(string $key, int $fallback = 0): int
     return (int) appSettingText($key, (string) $fallback);
 }
 
+function appSettingBool(string $key, bool $fallback = false): bool
+{
+    return in_array(strtolower(appSettingText($key, $fallback ? '1' : '0')), ['1', 'true', 'yes', 'on'], true);
+}
+
 function updateSetting(string $key, string $value): void
 {
     $stmt = db()->prepare('INSERT INTO settings(key, value) VALUES(:key, :value)
@@ -208,6 +213,36 @@ function customerStatusLabel(string $status): string
     return 'Active';
 }
 
+function serviceTypeLabel(string $type): string
+{
+    return match ($type) {
+        'hotspot' => 'Hotspot',
+        'static' => 'Static IP',
+        'other' => 'Lainnya',
+        default => 'PPPoE',
+    };
+}
+
+function mikrotikSyncLabel(?string $status): string
+{
+    return match (trim((string) $status)) {
+        'disabled' => 'Secret disabled / isolir',
+        'enabled' => 'Secret aktif',
+        'not_found' => 'Tidak ditemukan di MikroTik',
+        default => 'Belum sinkron',
+    };
+}
+
+function customerIsolationBadgeClass(array $customer): string
+{
+    return customerIsIsolated($customer) ? 'text-bg-danger' : 'text-bg-success';
+}
+
+function customerIsIsolated(array $customer): bool
+{
+    return (int) ($customer['isolated'] ?? 0) === 1 || (string) ($customer['status'] ?? '') === 'suspended';
+}
+
 function invoiceNetAmount(array $invoice): int
 {
     return max(0, (int) ($invoice['amount'] ?? 0) - normalizeCurrencyInput($invoice['discount_amount'] ?? 0));
@@ -252,4 +287,487 @@ function ensureInvoiceNumber(PDO $pdo, int $invoiceId): string
     ]);
 
     return $invoiceNo;
+}
+
+function code39Normalized(string $text): string
+{
+    $text = strtoupper(trim($text));
+    if ($text === '') {
+        $text = 'EMPTY';
+    }
+
+    $allowed = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%';
+    $clean = '';
+    foreach (str_split($text) as $char) {
+        $clean .= str_contains($allowed, $char) ? $char : '-';
+    }
+
+    return '*' . $clean . '*';
+}
+
+function code39Patterns(): array
+{
+    return [
+        '0' => 'nnnwwnwnn', '1' => 'wnnwnnnnw', '2' => 'nnwwnnnnw', '3' => 'wnwwnnnnn', '4' => 'nnnwwnnnw',
+        '5' => 'wnnwwnnnn', '6' => 'nnwwwnnnn', '7' => 'nnnwnnwnw', '8' => 'wnnwnnwnn', '9' => 'nnwwnnwnn',
+        'A' => 'wnnnnwnnw', 'B' => 'nnwnnwnnw', 'C' => 'wnwnnwnnn', 'D' => 'nnnnwwnnw', 'E' => 'wnnnwwnnn',
+        'F' => 'nnwnwwnnn', 'G' => 'nnnnnwwnw', 'H' => 'wnnnnwwnn', 'I' => 'nnwnnwwnn', 'J' => 'nnnnwwwnn',
+        'K' => 'wnnnnnnww', 'L' => 'nnwnnnnww', 'M' => 'wnwnnnnwn', 'N' => 'nnnnwnnww', 'O' => 'wnnnwnnwn',
+        'P' => 'nnwnwnnwn', 'Q' => 'nnnnnnwww', 'R' => 'wnnnnnwwn', 'S' => 'nnwnnnwwn', 'T' => 'nnnnwnwwn',
+        'U' => 'wwnnnnnnw', 'V' => 'nwwnnnnnw', 'W' => 'wwwnnnnnn', 'X' => 'nwnnwnnnw', 'Y' => 'wwnnwnnnn',
+        'Z' => 'nwwnwnnnn', '-' => 'nwnnnnwnw', '.' => 'wwnnnnwnn', ' ' => 'nwwnnnwnn', '$' => 'nwnwnwnnn',
+        '/' => 'nwnwnnnwn', '+' => 'nwnnnwnwn', '%' => 'nnnwnwnwn', '*' => 'nwnnwnwnn',
+    ];
+}
+
+function barcodeSvg(string $text, int $barHeight = 72): string
+{
+    $patterns = code39Patterns();
+    $encoded = code39Normalized($text);
+    $narrow = 2;
+    $wide = 5;
+    $gap = 2;
+    $x = 12;
+    $svg = [];
+
+    foreach (str_split($encoded) as $char) {
+        $pattern = $patterns[$char] ?? $patterns['-'];
+        for ($i = 0; $i < strlen($pattern); $i++) {
+            $width = $pattern[$i] === 'w' ? $wide : $narrow;
+            $isBar = $i % 2 === 0;
+            if ($isBar) {
+                $svg[] = '<rect x="' . $x . '" y="8" width="' . $width . '" height="' . $barHeight . '" fill="#111827" />';
+            }
+            $x += $width;
+        }
+        $x += $gap;
+    }
+
+    $width = $x + 12;
+    $label = e($text);
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $width . ' ' . ($barHeight + 38) . '" role="img" aria-label="Barcode ' . $label . '">' . implode('', $svg) . '<text x="50%" y="' . ($barHeight + 28) . '" text-anchor="middle" font-size="14" font-family="Arial, Helvetica, sans-serif" fill="#111827">' . $label . '</text></svg>';
+}
+
+final class RouterOsApiClient
+{
+    private $socket = null;
+    private int $timeout;
+
+    public function __construct(
+        private string $host,
+        private int $port = 8728,
+        private bool $useSsl = false,
+        int $timeout = 10,
+    ) {
+        $this->timeout = max(3, $timeout);
+    }
+
+    public function connect(string $username, string $password): void
+    {
+        $transport = $this->useSsl ? 'ssl://' : '';
+        $address = $transport . $this->host . ':' . $this->port;
+        $errno = 0;
+        $errstr = '';
+        $socket = @stream_socket_client($address, $errno, $errstr, $this->timeout);
+        if (!$socket) {
+            throw new RuntimeException('Gagal konek ke MikroTik: ' . ($errstr !== '' ? $errstr : 'socket error'));
+        }
+
+        stream_set_timeout($socket, $this->timeout);
+        $this->socket = $socket;
+
+        $response = $this->talk([
+            '/login',
+            '=name=' . $username,
+            '=password=' . $password,
+        ]);
+
+        if ($response['done']) {
+            return;
+        }
+
+        $challenge = $response['doneAttributes']['ret'] ?? $response['trap'][0]['ret'] ?? null;
+        if ($challenge) {
+            $hash = md5(chr(0) . $password . hex2bin((string) $challenge));
+            $legacy = $this->talk([
+                '/login',
+                '=name=' . $username,
+                '=response=00' . $hash,
+            ]);
+            if ($legacy['done']) {
+                return;
+            }
+            $message = $legacy['trap'][0]['message'] ?? 'Login legacy gagal';
+            throw new RuntimeException((string) $message);
+        }
+
+        $message = $response['trap'][0]['message'] ?? 'Login MikroTik gagal';
+        throw new RuntimeException((string) $message);
+    }
+
+    public function disconnect(): void
+    {
+        if (is_resource($this->socket)) {
+            fclose($this->socket);
+        }
+        $this->socket = null;
+    }
+
+    public function __destruct()
+    {
+        $this->disconnect();
+    }
+
+    public function command(string $command, array $attributes = [], array $proplist = []): array
+    {
+        $sentence = [$command];
+        foreach ($attributes as $key => $value) {
+            $sentence[] = '=' . $key . '=' . $value;
+        }
+        if ($proplist !== []) {
+            $sentence[] = '=.proplist=' . implode(',', $proplist);
+        }
+
+        $response = $this->talk($sentence);
+        if ($response['trap'] !== []) {
+            $message = $response['trap'][0]['message'] ?? 'MikroTik API error';
+            throw new RuntimeException((string) $message);
+        }
+
+        return $response['re'];
+    }
+
+    private function talk(array $sentence): array
+    {
+        foreach ($sentence as $word) {
+            $this->writeWord((string) $word);
+        }
+        $this->writeWord('');
+
+        $replies = [];
+        $traps = [];
+        $doneAttributes = [];
+        $done = false;
+
+        while (true) {
+            $reply = $this->readSentence();
+            if ($reply === []) {
+                break;
+            }
+
+            $type = array_shift($reply);
+            $attributes = $this->normalizeReplyAttributes($reply);
+
+            if ($type === '!re') {
+                $replies[] = $attributes;
+                continue;
+            }
+
+            if ($type === '!trap') {
+                $traps[] = $attributes;
+                continue;
+            }
+
+            if ($type === '!done') {
+                $done = true;
+                $doneAttributes = $attributes;
+                break;
+            }
+        }
+
+        return [
+            're' => $replies,
+            'trap' => $traps,
+            'done' => $done,
+            'doneAttributes' => $doneAttributes,
+        ];
+    }
+
+    private function normalizeReplyAttributes(array $reply): array
+    {
+        $data = [];
+        foreach ($reply as $word) {
+            if (str_starts_with($word, '=')) {
+                $parts = explode('=', substr($word, 1), 2);
+                $data[$parts[0]] = $parts[1] ?? '';
+                continue;
+            }
+            if (str_starts_with($word, '.')) {
+                $parts = explode('=', $word, 2);
+                $data[ltrim($parts[0], '.')] = $parts[1] ?? '';
+            }
+        }
+
+        return $data;
+    }
+
+    private function writeWord(string $word): void
+    {
+        $this->writeLength(strlen($word));
+        if ($word !== '') {
+            fwrite($this->socket, $word);
+        }
+    }
+
+    private function writeLength(int $length): void
+    {
+        if ($length < 0x80) {
+            fwrite($this->socket, chr($length));
+            return;
+        }
+        if ($length < 0x4000) {
+            $length |= 0x8000;
+            fwrite($this->socket, chr(($length >> 8) & 0xFF) . chr($length & 0xFF));
+            return;
+        }
+        if ($length < 0x200000) {
+            $length |= 0xC00000;
+            fwrite($this->socket, chr(($length >> 16) & 0xFF) . chr(($length >> 8) & 0xFF) . chr($length & 0xFF));
+            return;
+        }
+        if ($length < 0x10000000) {
+            $length |= 0xE0000000;
+            fwrite($this->socket, chr(($length >> 24) & 0xFF) . chr(($length >> 16) & 0xFF) . chr(($length >> 8) & 0xFF) . chr($length & 0xFF));
+            return;
+        }
+
+        fwrite($this->socket, chr(0xF0) . pack('N', $length));
+    }
+
+    private function readSentence(): array
+    {
+        $sentence = [];
+        while (true) {
+            $word = $this->readWord();
+            if ($word === '') {
+                return $sentence;
+            }
+            $sentence[] = $word;
+        }
+    }
+
+    private function readWord(): string
+    {
+        $length = $this->readLength();
+        if ($length === 0) {
+            return '';
+        }
+
+        $word = '';
+        while (strlen($word) < $length) {
+            $chunk = fread($this->socket, $length - strlen($word));
+            if ($chunk === false || $chunk === '') {
+                $meta = stream_get_meta_data($this->socket);
+                if (($meta['timed_out'] ?? false) === true) {
+                    throw new RuntimeException('Timeout saat membaca respon MikroTik.');
+                }
+                break;
+            }
+            $word .= $chunk;
+        }
+
+        return $word;
+    }
+
+    private function readLength(): int
+    {
+        $first = ord(fread($this->socket, 1));
+        if (($first & 0x80) === 0x00) {
+            return $first;
+        }
+        if (($first & 0xC0) === 0x80) {
+            $second = ord(fread($this->socket, 1));
+            return (($first & ~0xC0) << 8) + $second;
+        }
+        if (($first & 0xE0) === 0xC0) {
+            $second = ord(fread($this->socket, 1));
+            $third = ord(fread($this->socket, 1));
+            return (($first & ~0xE0) << 16) + ($second << 8) + $third;
+        }
+        if (($first & 0xF0) === 0xE0) {
+            $second = ord(fread($this->socket, 1));
+            $third = ord(fread($this->socket, 1));
+            $fourth = ord(fread($this->socket, 1));
+            return (($first & ~0xF0) << 24) + ($second << 16) + ($third << 8) + $fourth;
+        }
+        if (($first & 0xF8) === 0xF0) {
+            $data = fread($this->socket, 4);
+            $parts = unpack('N', $data);
+            return (int) ($parts[1] ?? 0);
+        }
+
+        return 0;
+    }
+}
+
+function mikrotikConfig(): array
+{
+    return [
+        'host' => trim(appSettingText('mikrotik_host')),
+        'port' => max(1, appSettingInt('mikrotik_port', 8728)),
+        'use_ssl' => appSettingBool('mikrotik_use_ssl', false),
+        'timeout' => max(3, appSettingInt('mikrotik_timeout', 10)),
+        'username' => trim(appSettingText('mikrotik_username')),
+        'password' => appSettingText('mikrotik_password'),
+        'router_name' => trim(appSettingText('mikrotik_router_name')),
+    ];
+}
+
+function mikrotikIsConfigured(): bool
+{
+    $config = mikrotikConfig();
+    return $config['host'] !== '' && $config['username'] !== '' && $config['password'] !== '';
+}
+
+function mikrotikClient(): RouterOsApiClient
+{
+    $config = mikrotikConfig();
+    if ($config['host'] === '' || $config['username'] === '' || $config['password'] === '') {
+        throw new RuntimeException('Konfigurasi MikroTik belum lengkap. Isi host, username, password, dan port di Pengaturan.');
+    }
+
+    $client = new RouterOsApiClient(
+        $config['host'],
+        (int) $config['port'],
+        (bool) $config['use_ssl'],
+        (int) $config['timeout'],
+    );
+    $client->connect((string) $config['username'], (string) $config['password']);
+
+    return $client;
+}
+
+function mikrotikTestConnection(): array
+{
+    $client = mikrotikClient();
+    $identity = $client->command('/system/identity/print', [], ['name']);
+    $resource = $client->command('/system/resource/print', [], ['version', 'board-name', 'uptime']);
+    $client->disconnect();
+
+    return [
+        'identity' => $identity[0]['name'] ?? (mikrotikConfig()['router_name'] ?: 'MikroTik'),
+        'version' => $resource[0]['version'] ?? '-',
+        'board_name' => $resource[0]['board-name'] ?? '-',
+        'uptime' => $resource[0]['uptime'] ?? '-',
+    ];
+}
+
+function mikrotikFetchPppProfiles(): array
+{
+    $client = mikrotikClient();
+    $profiles = $client->command('/ppp/profile/print', [], ['.id', 'name', 'rate-limit', 'only-one', 'local-address', 'remote-address']);
+    $client->disconnect();
+
+    usort($profiles, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
+    return $profiles;
+}
+
+function mikrotikFetchPppSecrets(): array
+{
+    $client = mikrotikClient();
+    $secrets = $client->command('/ppp/secret/print', [], ['.id', 'name', 'profile', 'service', 'disabled', 'comment', 'caller-id', 'last-logged-out', 'last-logged-in', 'remote-address']);
+    $client->disconnect();
+
+    usort($secrets, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
+    return $secrets;
+}
+
+function mikrotikEnableSecret(string $secretId): void
+{
+    $client = mikrotikClient();
+    $client->command('/ppp/secret/enable', ['.id' => $secretId]);
+    $client->disconnect();
+}
+
+function mikrotikDisableSecret(string $secretId): void
+{
+    $client = mikrotikClient();
+    $client->command('/ppp/secret/disable', ['.id' => $secretId]);
+    $client->disconnect();
+}
+
+function mikrotikSetSecretProfile(string $secretId, string $profileName): void
+{
+    $client = mikrotikClient();
+    $client->command('/ppp/secret/set', ['.id' => $secretId, 'profile' => $profileName]);
+    $client->disconnect();
+}
+
+function syncCustomersFromMikrotik(PDO $pdo): array
+{
+    $secrets = mikrotikFetchPppSecrets();
+    $byId = [];
+    $byName = [];
+    foreach ($secrets as $secret) {
+        if (!empty($secret['id'])) {
+            $byId[(string) $secret['id']] = $secret;
+        }
+        if (!empty($secret['name'])) {
+            $byName[strtolower((string) $secret['name'])] = $secret;
+        }
+    }
+
+    $customers = $pdo->query('SELECT id, service_username, mikrotik_secret_id FROM customers')->fetchAll();
+    $updated = 0;
+    $isolated = 0;
+    $notFound = 0;
+
+    $stmt = $pdo->prepare('UPDATE customers
+        SET service_username = :service_username,
+            mikrotik_secret_id = :mikrotik_secret_id,
+            mikrotik_profile_name = :mikrotik_profile_name,
+            mikrotik_last_status = :mikrotik_last_status,
+            isolated = :isolated,
+            last_synced_at = :last_synced_at
+        WHERE id = :id');
+
+    foreach ($customers as $customer) {
+        $secret = null;
+        $secretId = trim((string) ($customer['mikrotik_secret_id'] ?? ''));
+        $username = strtolower(trim((string) ($customer['service_username'] ?? '')));
+
+        if ($secretId !== '' && isset($byId[$secretId])) {
+            $secret = $byId[$secretId];
+        } elseif ($username !== '' && isset($byName[$username])) {
+            $secret = $byName[$username];
+        }
+
+        if ($secret === null) {
+            $stmt->execute([
+                ':service_username' => trim((string) ($customer['service_username'] ?? '')),
+                ':mikrotik_secret_id' => trim((string) ($customer['mikrotik_secret_id'] ?? '')),
+                ':mikrotik_profile_name' => '',
+                ':mikrotik_last_status' => 'not_found',
+                ':isolated' => 0,
+                ':last_synced_at' => date('Y-m-d H:i:s'),
+                ':id' => (int) $customer['id'],
+            ]);
+            $updated++;
+            $notFound++;
+            continue;
+        }
+
+        $isDisabled = in_array(strtolower((string) ($secret['disabled'] ?? 'false')), ['true', 'yes'], true);
+        $stmt->execute([
+            ':service_username' => (string) ($secret['name'] ?? ''),
+            ':mikrotik_secret_id' => (string) ($secret['id'] ?? ''),
+            ':mikrotik_profile_name' => (string) ($secret['profile'] ?? ''),
+            ':mikrotik_last_status' => $isDisabled ? 'disabled' : 'enabled',
+            ':isolated' => $isDisabled ? 1 : 0,
+            ':last_synced_at' => date('Y-m-d H:i:s'),
+            ':id' => (int) $customer['id'],
+        ]);
+        $updated++;
+        if ($isDisabled) {
+            $isolated++;
+        }
+    }
+
+    return [
+        'updated' => $updated,
+        'isolated' => $isolated,
+        'not_found' => $notFound,
+        'secret_count' => count($secrets),
+    ];
 }
