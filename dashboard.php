@@ -44,7 +44,7 @@ $recentInvoices = $pdo->query('SELECT i.*, c.full_name AS customer_name, c.area,
 require __DIR__ . '/includes/header.php';
 ?>
 
-<section class="dashboard-hero-card mb-4 dashboard-hero-card--compact">
+<section class="dashboard-hero-card dashboard-hero-card--colorful mb-4 dashboard-hero-card--compact">
   <div class="dashboard-hero-compact-row">
     <div class="dashboard-hero-compact-main">
       <div class="dashboard-hero-logo-inline">
@@ -71,7 +71,7 @@ require __DIR__ . '/includes/header.php';
 </section>
 
 <section class="grid lg:grid-cols-2 gap-4 mb-4">
-  <div class="bg-white rounded-xl shadow p-4 dashboard-update-card dashboard-update-card--compact">
+  <div class="bg-white rounded-xl shadow p-4 dashboard-update-card dashboard-update-card--compact dashboard-accent-card dashboard-accent-card--indigo">
     <div class="dashboard-section-head dashboard-section-head--compact">
       <div>
         <div class="dashboard-section-kicker">Versi Fondasi</div>
@@ -88,7 +88,7 @@ require __DIR__ . '/includes/header.php';
     </ul>
   </div>
 
-  <div class="bg-white rounded-xl shadow p-4 dashboard-update-card dashboard-update-card--compact">
+  <div class="bg-white rounded-xl shadow p-4 dashboard-update-card dashboard-update-card--compact dashboard-accent-card dashboard-accent-card--violet">
     <div class="dashboard-section-head dashboard-section-head--compact">
       <div>
         <div class="dashboard-section-kicker">Alur Cepat</div>
@@ -106,28 +106,28 @@ require __DIR__ . '/includes/header.php';
 </section>
 
 <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
-  <div class="stat-card p-4">
+  <div class="stat-card stat-card--sky p-4">
     <p class="text-sm text-slate-500">Total Pelanggan</p>
     <p class="text-3xl font-bold"><?= $customerCount ?></p>
   </div>
-  <div class="stat-card p-4">
+  <div class="stat-card stat-card--amber p-4">
     <p class="text-sm text-slate-500">Pelanggan Belum Bayar <?= e(monthName($currentMonth)) ?></p>
     <p class="text-3xl font-bold text-amber-600"><?= $unpaidCustomerCount ?></p>
   </div>
-  <div class="stat-card p-4">
+  <div class="stat-card stat-card--rose p-4">
     <p class="text-sm text-slate-500">Pelanggan Diisolir</p>
     <p class="text-3xl font-bold text-red-600"><?= $isolatedCount ?></p>
   </div>
-  <div class="stat-card p-4">
+  <div class="stat-card stat-card--violet p-4">
     <p class="text-sm text-slate-500">Invoice Belum Lunas</p>
     <p class="text-3xl font-bold text-amber-600"><?= $unpaidCount ?></p>
   </div>
-  <div class="stat-card p-4">
+  <div class="stat-card stat-card--mint p-4">
     <p class="text-sm text-slate-500">Piutang Saat Ini</p>
     <p class="text-3xl font-bold"><?= e(rupiah($unpaidTotal)) ?></p>
     <div class="text-xs text-slate-500 mt-1">Sudah dibayar: <?= e(rupiah($paidTotal)) ?></div>
   </div>
-  <div class="stat-card p-4">
+  <div class="stat-card stat-card--indigo p-4">
     <p class="text-sm text-slate-500">MikroTik API</p>
     <?php if (!$mikrotikReady): ?>
       <p class="text-sm text-amber-700 fw-semibold">Belum dikonfigurasi</p>
@@ -148,7 +148,7 @@ require __DIR__ . '/includes/header.php';
     <div class="small text-secondary">Invoice total: <?= $invoiceCount ?> • Paket aktif: <?= $packageCount ?></div>
   </div>
   <div class="grid md:grid-cols-2 gap-4">
-    <div class="rounded-4 border p-3 bg-light">
+    <div class="rounded-4 border p-3 bg-light soft-panel soft-panel--sky">
       <div class="fw-semibold mb-2">Fokus bulan ini</div>
       <ul class="mb-0 small text-secondary ps-3">
         <li>Follow up pelanggan yang belum bayar untuk periode <?= e(periodLabel($currentMonth, $currentYear)) ?>.</li>
@@ -156,7 +156,7 @@ require __DIR__ . '/includes/header.php';
         <li>Cetak invoice barcode dari menu Invoice saat penagihan lapangan.</li>
       </ul>
     </div>
-    <div class="rounded-4 border p-3 bg-light">
+    <div class="rounded-4 border p-3 bg-light soft-panel soft-panel--violet">
       <div class="fw-semibold mb-2">Catatan implementasi awal</div>
       <ul class="mb-0 small text-secondary ps-3">
         <li>Sinkron status isolir memakai status disabled pada PPP secret MikroTik.</li>
