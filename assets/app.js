@@ -75,30 +75,34 @@
     }
   };
 
-  sidebarToggle?.addEventListener('click', () => {
-    if (!layout) return;
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      if (!layout) return;
 
-    if (window.innerWidth <= 992) {
-      layout.classList.toggle('sidebar-open');
-      return;
-    }
+      if (window.innerWidth <= 992) {
+        layout.classList.toggle('sidebar-open');
+        return;
+      }
 
-    const collapsed = layout.classList.contains('sidebar-collapsed');
-    setSidebarMode(collapsed ? 'expanded' : 'collapsed');
-  });
+      const collapsed = layout.classList.contains('sidebar-collapsed');
+      setSidebarMode(collapsed ? 'expanded' : 'collapsed');
+    });
+  }
 
   document.addEventListener('click', (event) => {
     if (!layout || window.innerWidth > 992) return;
     const sidebar = document.getElementById('appSidebar');
     if (!layout.classList.contains('sidebar-open')) return;
-    if (sidebar?.contains(event.target) || sidebarToggle?.contains(event.target)) return;
+    if ((sidebar && sidebar.contains(event.target)) || (sidebarToggle && sidebarToggle.contains(event.target))) return;
     layout.classList.remove('sidebar-open');
   });
 
-  themeToggle?.addEventListener('click', () => {
-    const current = body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    setTheme(current === 'dark' ? 'light' : 'dark');
-  });
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const current = body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    });
+  }
 
   const initDataTables = () => {
     const tables = document.querySelectorAll('table.js-data-table');
@@ -151,7 +155,9 @@
         </div>
       `;
 
-      table.parentElement?.insertBefore(tools, table);
+      if (table.parentElement) {
+        table.parentElement.insertBefore(tools, table);
+      }
 
       const searchInput = tools.querySelector('.js-table-search');
       const info = tools.querySelector('.js-table-info');
@@ -187,38 +193,57 @@
         if (nextBtn) nextBtn.disabled = page >= totalPages;
       };
 
-      searchInput?.addEventListener('input', () => {
-        const q = (searchInput.value || '').toLowerCase().trim();
-        filteredRows = rows.filter((row) => row.innerText.toLowerCase().includes(q));
-        page = 1;
-        draw();
-      });
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          const q = (searchInput.value || '').toLowerCase().trim();
+          filteredRows = rows.filter((row) => row.innerText.toLowerCase().includes(q));
+          page = 1;
+          draw();
+        });
+      }
 
-      pageSizeInput?.addEventListener('change', () => {
-        pageSize = Math.max(1, Number(pageSizeInput.value || 10));
-        page = 1;
-        draw();
-      });
+      if (pageSizeInput) {
+        pageSizeInput.addEventListener('change', () => {
+          pageSize = Math.max(1, Number(pageSizeInput.value || 10));
+          page = 1;
+          draw();
+        });
+      }
 
-      prevBtn?.addEventListener('click', () => {
-        page = Math.max(1, page - 1);
-        draw();
-      });
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          page = Math.max(1, page - 1);
+          draw();
+        });
+      }
 
-      nextBtn?.addEventListener('click', () => {
-        page += 1;
-        draw();
-      });
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          page += 1;
+          draw();
+        });
+      }
 
       draw();
     });
   };
 
   const initLoader = () => {
-    const loader = ensureLoader();
-    window.addEventListener('load', () => {
-      hideLoader();
-    });
+    ensureLoader();
+
+    const safeHide = () => {
+      try {
+        hideLoader();
+      } catch (error) {
+        console.warn('Hide loader failed:', error);
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', safeHide);
+    window.addEventListener('load', safeHide);
+    window.addEventListener('pageshow', safeHide);
+    setTimeout(safeHide, 1200);
+    setTimeout(safeHide, 3000);
 
     document.addEventListener('click', (event) => {
       const link = event.target.closest('a[href]');
@@ -348,7 +373,7 @@
     const backdrop = document.getElementById('announcementPopupBackdrop');
     const closeBtn = document.getElementById('announcementPopupClose');
     const okBtn = document.getElementById('announcementPopupOk');
-    const card = backdrop?.querySelector('[data-announcement-id]');
+    const card = backdrop ? backdrop.querySelector('[data-announcement-id]') : null;
     if (!backdrop || !closeBtn || !okBtn || !card) return;
 
     const announcementId = card.dataset.announcementId || '';
