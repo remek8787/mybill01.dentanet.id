@@ -148,11 +148,17 @@ if (mikrotikIsConfigured()) {
 require __DIR__ . '/includes/header.php';
 ?>
 
+<section class="page-ornament page-ornament--gold mb-4">
+  <div class="page-ornament-kicker"><i class="fa-solid fa-users-viewfinder me-2"></i>Manajemen Pelanggan</div>
+  <h1 class="page-ornament-title">Pelanggan RT/RW Net</h1>
+  <p class="page-ornament-text">Input pelanggan, pilih secret MikroTik, atur layanan, dan lihat status isolir dengan nuansa batik yang lebih mewah.</p>
+</section>
+
 <div class="grid lg:grid-cols-3 gap-4">
-  <section class="bg-white rounded-xl shadow p-4">
+  <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--form">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
       <h2 class="font-semibold mb-0"><?= $editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan RT/RW Net' ?></h2>
-      <a href="mikrotik.php" class="btn btn-sm btn-outline-primary">Sinkron MikroTik</a>
+      <a href="mikrotik.php" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-rotate me-1"></i>Sinkron MikroTik</a>
     </div>
     <?php if (!mikrotikIsConfigured()): ?>
       <div class="rounded-3 border border-amber-200 bg-amber-50 p-3 small text-amber-800 mb-3">
@@ -168,7 +174,7 @@ require __DIR__ . '/includes/header.php';
       </div>
     <?php endif; ?>
 
-    <form method="post" class="space-y-3">
+    <form method="post" class="space-y-3 luxe-form">
       <input type="hidden" name="action" value="save_customer">
       <input type="hidden" name="id" value="<?= (int) ($editCustomer['id'] ?? 0) ?>">
       <div>
@@ -269,15 +275,15 @@ require __DIR__ . '/includes/header.php';
         <textarea name="notes" rows="2" class="mt-1 w-full border rounded px-3 py-2"><?= e((string) ($editCustomer['notes'] ?? '')) ?></textarea>
       </div>
       <div class="flex gap-2 flex-wrap">
-        <button class="bg-slate-900 text-white rounded px-4 py-2">Simpan Pelanggan</button>
+        <button class="btn btn-primary px-4 py-2"><i class="fa-solid fa-floppy-disk me-1"></i>Simpan Pelanggan</button>
         <?php if ($editCustomer): ?>
-          <a href="customers.php" class="px-4 py-2 rounded bg-slate-200 text-slate-800">Batal</a>
+          <a href="customers.php" class="btn btn-outline-secondary px-4 py-2"><i class="fa-solid fa-xmark me-1"></i>Batal</a>
         <?php endif; ?>
       </div>
     </form>
   </section>
 
-  <section class="bg-white rounded-xl shadow p-4 lg:col-span-2">
+  <section class="bg-white rounded-xl shadow p-4 lg:col-span-2 luxe-card luxe-card--table">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h2 class="font-semibold mb-0">Daftar Pelanggan</h2>
       <div class="small text-secondary">Menampilkan data billing + referensi MikroTik + status isolir.</div>
@@ -319,12 +325,12 @@ require __DIR__ . '/includes/header.php';
                 <div class="text-xs text-slate-500 mt-1">Last sync: <?= e(formatDateTimeId((string) ($customer['last_synced_at'] ?? ''), '-')) ?></div>
               </td>
               <td class="py-2 pr-3">
-                <a class="px-2 py-1 rounded bg-slate-200" href="customers.php?edit=<?= (int) $customer['id'] ?>">Edit</a>
+                <a class="btn btn-sm btn-outline-secondary" href="customers.php?edit=<?= (int) $customer['id'] ?>"><i class="fa-solid fa-pen-to-square me-1"></i>Edit</a>
                 <?php if (($user['role'] ?? '') === 'admin'): ?>
                   <form method="post" class="inline" onsubmit="return confirm('Hapus pelanggan ini?')">
                     <input type="hidden" name="action" value="delete_customer">
                     <input type="hidden" name="id" value="<?= (int) $customer['id'] ?>">
-                    <button class="px-2 py-1 rounded bg-red-100 text-red-700">Hapus</button>
+                    <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash-can me-1"></i>Hapus</button>
                   </form>
                 <?php endif; ?>
               </td>

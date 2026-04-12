@@ -85,10 +85,16 @@ $packages = $pdo->query('SELECT * FROM packages ORDER BY is_active DESC, id DESC
 require __DIR__ . '/includes/header.php';
 ?>
 
+<section class="page-ornament page-ornament--violet mb-4">
+  <div class="page-ornament-kicker"><i class="fa-solid fa-box-open me-2"></i>Master Paket</div>
+  <h1 class="page-ornament-title">Kelola Paket Internet</h1>
+  <p class="page-ornament-text">Atur paket, harga, speed, dan mapping profile MikroTik dengan layout yang lebih premium dan berkarakter.</p>
+</section>
+
 <div class="grid lg:grid-cols-3 gap-4">
-  <section class="bg-white rounded-xl shadow p-4">
+  <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--form">
     <h2 class="font-semibold mb-3"><?= $editPackage ? 'Edit Paket' : 'Tambah Paket Internet' ?></h2>
-    <form method="post" class="space-y-3">
+    <form method="post" class="space-y-3 luxe-form">
       <input type="hidden" name="action" value="save_package">
       <input type="hidden" name="id" value="<?= (int) ($editPackage['id'] ?? 0) ?>">
       <div>
@@ -118,15 +124,15 @@ require __DIR__ . '/includes/header.php';
       </div>
       <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" <?= ((int) ($editPackage['is_active'] ?? 1) === 1) ? 'checked' : '' ?>> Paket aktif</label>
       <div class="flex gap-2 flex-wrap">
-        <button class="bg-slate-900 text-white rounded px-4 py-2">Simpan Paket</button>
+        <button class="btn btn-primary px-4 py-2"><i class="fa-solid fa-floppy-disk me-1"></i>Simpan Paket</button>
         <?php if ($editPackage): ?>
-          <a href="packages.php" class="px-4 py-2 rounded bg-slate-200 text-slate-800">Batal</a>
+          <a href="packages.php" class="btn btn-outline-secondary px-4 py-2"><i class="fa-solid fa-xmark me-1"></i>Batal</a>
         <?php endif; ?>
       </div>
     </form>
   </section>
 
-  <section class="bg-white rounded-xl shadow p-4 lg:col-span-2">
+  <section class="bg-white rounded-xl shadow p-4 lg:col-span-2 luxe-card luxe-card--table">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h2 class="font-semibold mb-0">Daftar Paket</h2>
       <div class="small text-secondary">Tambahkan mapping profile agar admin lebih cepat saat input pelanggan.</div>
@@ -157,12 +163,12 @@ require __DIR__ . '/includes/header.php';
               <td class="py-2 pr-3"><?= e((string) ($package['api_plan_id'] ?? '-')) ?></td>
               <td class="py-2 pr-3"><span class="badge <?= ((int) $package['is_active'] === 1) ? 'text-bg-success' : 'text-bg-secondary' ?>"><?= ((int) $package['is_active'] === 1) ? 'Aktif' : 'Nonaktif' ?></span></td>
               <td class="py-2 pr-3">
-                <a class="px-2 py-1 rounded bg-slate-200" href="packages.php?edit=<?= (int) $package['id'] ?>">Edit</a>
+                <a class="btn btn-sm btn-outline-secondary" href="packages.php?edit=<?= (int) $package['id'] ?>"><i class="fa-solid fa-pen-to-square me-1"></i>Edit</a>
                 <?php if (($user['role'] ?? '') === 'admin'): ?>
                   <form method="post" class="inline" onsubmit="return confirm('Hapus paket ini?')">
                     <input type="hidden" name="action" value="delete_package">
                     <input type="hidden" name="id" value="<?= (int) $package['id'] ?>">
-                    <button class="px-2 py-1 rounded bg-red-100 text-red-700">Hapus</button>
+                    <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash-can me-1"></i>Hapus</button>
                   </form>
                 <?php endif; ?>
               </td>

@@ -94,7 +94,13 @@ $unpaidCustomerCount = count($unpaidCustomerIds);
 require __DIR__ . '/includes/header.php';
 ?>
 
-<section class="bg-white rounded-xl shadow p-4 mb-4">
+<section class="page-ornament page-ornament--rose mb-4">
+  <div class="page-ornament-kicker"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Pusat Invoice</div>
+  <h1 class="page-ornament-title">Invoice dan Pembayaran</h1>
+  <p class="page-ornament-text">Filter tagihan, monitor piutang, dan proses pembayaran dalam tampilan elegan dengan sentuhan batik emas.</p>
+</section>
+
+<section class="bg-white rounded-xl shadow p-4 mb-4 luxe-card luxe-card--table">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <h2 class="font-semibold mb-0">Daftar Invoice RT/RW Net</h2>
     <div class="small text-secondary">Filter pelanggan belum bayar per bulan, lalu lanjut cetak atau isolir dari menu MikroTik API.</div>
@@ -114,8 +120,8 @@ require __DIR__ . '/includes/header.php';
     </select>
     <input type="text" name="q" value="<?= e($search) ?>" placeholder="Cari customer / PPPoE / invoice" class="border rounded px-3 py-2">
     <div class="flex gap-2">
-      <button class="bg-slate-900 text-white rounded px-4 py-2 w-full">Filter</button>
-      <a href="bills.php" class="px-4 py-2 rounded bg-slate-200 text-slate-800">Reset</a>
+      <button class="btn btn-primary px-4 py-2 w-full"><i class="fa-solid fa-filter me-1"></i>Filter</button>
+      <a href="bills.php" class="btn btn-outline-secondary px-4 py-2"><i class="fa-solid fa-rotate-left me-1"></i>Reset</a>
     </div>
   </form>
 
@@ -127,7 +133,7 @@ require __DIR__ . '/includes/header.php';
   </div>
 </section>
 
-<section class="bg-white rounded-xl shadow p-4">
+<section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
   <div class="overflow-auto table-wrap">
     <table class="min-w-full text-sm js-data-table table-soft table-card-mode" data-page-size="5">
       <thead>
@@ -170,11 +176,11 @@ require __DIR__ . '/includes/header.php';
               <div class="text-xs mt-1"><span class="badge <?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'text-bg-danger' : 'text-bg-success' ?>"><?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'Sedang diisolir' : 'Tidak diisolir' ?></span></div>
             </td>
             <td class="py-2 pr-3">
-              <a class="px-2 py-1 rounded bg-slate-200 inline-block mb-1" href="bill_print.php?id=<?= (int) $bill['id'] ?>" target="_blank">Cetak Invoice</a>
+              <a class="btn btn-sm btn-outline-secondary inline-block mb-1" href="bill_print.php?id=<?= (int) $bill['id'] ?>" target="_blank"><i class="fa-solid fa-print me-1"></i>Cetak Invoice</a>
               <?php if (($bill['status'] ?? '') === 'paid'): ?>
-                <a class="px-2 py-1 rounded bg-emerald-100 text-emerald-800 inline-block mb-1" href="receipt.php?id=<?= (int) $bill['id'] ?>" target="_blank">Kwitansi</a>
+                <a class="btn btn-sm btn-outline-primary inline-block mb-1" href="receipt.php?id=<?= (int) $bill['id'] ?>" target="_blank"><i class="fa-solid fa-receipt me-1"></i>Kwitansi</a>
               <?php endif; ?>
-              <a class="px-2 py-1 rounded bg-sky-100 text-sky-800 inline-block mb-1" href="mikrotik.php">MikroTik API</a>
+              <a class="btn btn-sm btn-outline-primary inline-block mb-1" href="mikrotik.php"><i class="fa-solid fa-network-wired me-1"></i>MikroTik API</a>
 
               <?php if (($bill['status'] ?? '') === 'unpaid'): ?>
                 <form method="post" class="space-y-1 mt-2">
@@ -188,13 +194,13 @@ require __DIR__ . '/includes/header.php';
                   </select>
                   <input type="number" min="0" name="discount_amount" class="border rounded px-2 py-1 w-full" placeholder="Diskon opsional">
                   <input type="text" name="payment_note" class="border rounded px-2 py-1 w-full" placeholder="Catatan bayar opsional">
-                  <button class="px-2 py-1 rounded bg-sky-700 text-white">Tandai Lunas</button>
+                  <button class="btn btn-primary btn-sm"><i class="fa-solid fa-circle-check me-1"></i>Tandai Lunas</button>
                 </form>
               <?php else: ?>
                 <form method="post" class="mt-2 inline-block" onsubmit="return confirm('Kembalikan invoice ke belum lunas?')">
                   <input type="hidden" name="action" value="mark_unpaid">
                   <input type="hidden" name="id" value="<?= (int) $bill['id'] ?>">
-                  <button class="px-2 py-1 rounded bg-amber-100 text-amber-800">Batal Lunas</button>
+                  <button class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-rotate-left me-1"></i>Batal Lunas</button>
                 </form>
               <?php endif; ?>
             </td>

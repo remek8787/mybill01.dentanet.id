@@ -48,7 +48,9 @@
     body.setAttribute('data-theme', theme);
     localStorage.setItem(THEME_KEY, theme);
     if (themeToggle) {
-      themeToggle.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+      themeToggle.innerHTML = theme === 'dark'
+        ? '<i class="fa-solid fa-sun me-1"></i>Light'
+        : '<i class="fa-solid fa-moon me-1"></i>Dark';
     }
   };
 

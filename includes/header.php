@@ -15,6 +15,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -38,17 +39,17 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
     <?php if ($user): ?>
       <nav class="side-nav">
-        <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
-        <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="bi bi-people me-2"></i>Pelanggan</a>
-        <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="bi bi-router me-2"></i>Paket</a>
-        <a class="side-link <?= $currentPage === 'mikrotik.php' ? 'active' : '' ?>" href="mikrotik.php"><i class="bi bi-hdd-network me-2"></i>MikroTik API</a>
-        <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="bi bi-calendar2-check me-2"></i>Generate Billing</a>
-        <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="bi bi-receipt-cutoff me-2"></i>Invoice</a>
+        <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</a>
+        <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="fa-solid fa-users-viewfinder me-2"></i>Pelanggan</a>
+        <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="fa-solid fa-box-open me-2"></i>Paket</a>
+        <a class="side-link <?= $currentPage === 'mikrotik.php' ? 'active' : '' ?>" href="mikrotik.php"><i class="fa-solid fa-network-wired me-2"></i>MikroTik API</a>
+        <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="fa-solid fa-file-circle-plus me-2"></i>Generate Billing</a>
+        <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoice</a>
         <?php if (($user['role'] ?? '') === 'admin'): ?>
-          <a class="side-link <?= $currentPage === 'users.php' ? 'active' : '' ?>" href="users.php"><i class="bi bi-person-gear me-2"></i>Users</a>
-          <a class="side-link <?= $currentPage === 'settings.php' ? 'active' : '' ?>" href="settings.php"><i class="bi bi-sliders2 me-2"></i>Pengaturan</a>
+          <a class="side-link <?= $currentPage === 'users.php' ? 'active' : '' ?>" href="users.php"><i class="fa-solid fa-user-shield me-2"></i>Users</a>
+          <a class="side-link <?= $currentPage === 'settings.php' ? 'active' : '' ?>" href="settings.php"><i class="fa-solid fa-sliders me-2"></i>Pengaturan</a>
         <?php endif; ?>
-        <a class="side-link <?= $currentPage === 'profile.php' ? 'active' : '' ?>" href="profile.php"><i class="bi bi-person-circle me-2"></i>Profil</a>
+        <a class="side-link <?= $currentPage === 'profile.php' ? 'active' : '' ?>" href="profile.php"><i class="fa-solid fa-id-badge me-2"></i>Profil</a>
       </nav>
     <?php endif; ?>
   </aside>
@@ -57,7 +58,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
     <header class="app-topbar">
       <div class="d-flex align-items-center gap-2 topbar-brand-wrap">
         <img src="<?= e(brandingLogoPath()) ?>" alt="<?= e(companyName()) ?>" class="topbar-logo">
-        <button class="btn btn-sm btn-outline-secondary" id="sidebarToggle" type="button" title="Hide/Show Sidebar"><i class="bi bi-layout-sidebar"></i></button>
+        <button class="btn btn-sm btn-outline-secondary" id="sidebarToggle" type="button" title="Hide/Show Sidebar"><i class="fa-solid fa-bars-staggered"></i></button>
         <div>
           <div class="small fw-semibold"><?= e(companyName()) ?></div>
           <div class="topbar-tagline"><?= e(billingTagline()) ?></div>
@@ -66,10 +67,10 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
       <?php if ($user): ?>
         <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-          <button id="themeToggle" class="btn btn-sm btn-outline-secondary" type="button">🌙 Dark</button>
+          <button id="themeToggle" class="btn btn-sm btn-outline-secondary" type="button"><i class="fa-solid fa-moon me-1"></i>Dark</button>
           <span class="badge text-bg-success"><?= e((string) $user['full_name']) ?> (<?= e(displayRoleLabel($user)) ?>)</span>
-          <a class="btn btn-sm btn-outline-primary" href="profile.php">Profil</a>
-          <a class="btn btn-sm btn-danger" href="logout.php">Logout</a>
+          <a class="btn btn-sm btn-outline-primary" href="profile.php"><i class="fa-solid fa-user-pen me-1"></i>Profil</a>
+          <a class="btn btn-sm btn-danger" href="logout.php"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</a>
         </div>
       <?php endif; ?>
     </header>
