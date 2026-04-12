@@ -1,0 +1,20 @@
+{
+  "name": "MYBILL RT/RW NET",
+  "short_name": "MYBILL",
+  "start_url": "./dashboard.php",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "assets/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
