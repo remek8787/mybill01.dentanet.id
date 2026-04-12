@@ -4,6 +4,20 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) === 0;
+    }
+}
+
 function e(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -215,22 +229,33 @@ function customerStatusLabel(string $status): string
 
 function serviceTypeLabel(string $type): string
 {
-    return match ($type) {
-        'hotspot' => 'Hotspot',
-        'static' => 'Static IP',
-        'other' => 'Lainnya',
-        default => 'PPPoE',
-    };
+    if ($type === 'hotspot') {
+        return 'Hotspot';
+    }
+    if ($type === 'static') {
+        return 'Static IP';
+    }
+    if ($type === 'other') {
+        return 'Lainnya';
+    }
+
+    return 'PPPoE';
 }
 
 function mikrotikSyncLabel(?string $status): string
 {
-    return match (trim((string) $status)) {
-        'disabled' => 'Secret disabled / isolir',
-        'enabled' => 'Secret aktif',
-        'not_found' => 'Tidak ditemukan di MikroTik',
-        default => 'Belum sinkron',
-    };
+    $status = trim((string) $status);
+    if ($status === 'disabled') {
+        return 'Secret disabled / isolir';
+    }
+    if ($status === 'enabled') {
+        return 'Secret aktif';
+    }
+    if ($status === 'not_found') {
+        return 'Tidak ditemukan di MikroTik';
+    }
+
+    return 'Belum sinkron';
 }
 
 function customerIsolationBadgeClass(array $customer): string
@@ -352,14 +377,16 @@ function barcodeSvg(string $text, int $barHeight = 72): string
 final class RouterOsApiClient
 {
     private $socket = null;
+    private string $host;
+    private int $port;
+    private bool $useSsl;
     private int $timeout;
 
-    public function __construct(
-        private string $host,
-        private int $port = 8728,
-        private bool $useSsl = false,
-        int $timeout = 10,
-    ) {
+    public function __construct(string $host, int $port = 8728, bool $useSsl = false, int $timeout = 10)
+    {
+        $this->host = $host;
+        $this->port = $port;
+        $this->useSsl = $useSsl;
         $this->timeout = max(3, $timeout);
     }
 
