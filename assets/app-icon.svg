@@ -1,18 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">DENTA TIRTA</title>
-  <desc id="desc">Ikon aplikasi DENTA TIRTA dengan tetesan air biru dan huruf DT.</desc>
+  <title id="title">MyBill Network</title>
+  <desc id="desc">Ikon aplikasi billing internet dengan node jaringan dan huruf MB.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#1d4ed8"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
     </linearGradient>
-    <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="node" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#dbeafe"/>
-      <stop offset="100%" stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#e9d5ff"/>
     </linearGradient>
   </defs>
   <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bg)"/>
-  <path d="M256 108c-48 62-116 128-116 208 0 63.96 52.04 116 116 116s116-52.04 116-116c0-80-68-146-116-208z" fill="url(#drop)"/>
-  <path d="M256 148c-36 47-86 98-86 159 0 47.5 38.5 86 86 86s86-38.5 86-86c0-61-50-112-86-159z" fill="#eff6ff" opacity="0.95"/>
-  <text x="256" y="328" text-anchor="middle" font-size="102" font-family="Arial, Helvetica, sans-serif" font-weight="800" fill="#1d4ed8">DT</text>
+  <circle cx="170" cy="170" r="54" fill="url(#node)"/>
+  <circle cx="342" cy="170" r="54" fill="url(#node)"/>
+  <circle cx="256" cy="308" r="68" fill="#eff6ff"/>
+  <path d="M170 170L256 308L342 170" stroke="#c4b5fd" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <text x="256" y="362" text-anchor="middle" font-size="86" font-family="Arial, Helvetica, sans-serif" font-weight="800" fill="#1d4ed8">MB</text>
 </svg>

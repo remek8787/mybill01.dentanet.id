@@ -285,6 +285,87 @@ function companyName(): string
     return appSettingText('company_name', APP_NAME);
 }
 
+function billingTagline(): string
+{
+    return appSettingText('billing_tagline', 'Billing internet yang rapi, cepat, dan siap konek ke MikroTik.');
+}
+
+function brandingLogoPath(): string
+{
+    $logo = trim(appSettingText('company_logo'));
+    return $logo !== '' ? $logo : 'assets/app-logo.svg';
+}
+
+function ensureDirectory(string $path): void
+{
+    if (!is_dir($path)) {
+        mkdir($path, 0775, true);
+    }
+}
+
+function saveBrandLogoUpload(array $file): ?string
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Upload logo gagal. Coba ulangi dengan file lain.');
+    }
+
+    $tmp = (string) ($file['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        throw new RuntimeException('File logo tidak valid.');
+    }
+
+    $size = (int) ($file['size'] ?? 0);
+    if ($size <= 0 || $size > 2 * 1024 * 1024) {
+        throw new RuntimeException('Logo maksimal 2 MB.');
+    }
+
+    $mime = '';
+    $info = @getimagesize($tmp);
+    if ($info && !empty($info['mime'])) {
+        $mime = (string) $info['mime'];
+    }
+    if ($mime === '' && function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo) {
+            $mime = (string) finfo_file($finfo, $tmp);
+            finfo_close($finfo);
+        }
+    }
+    if ($mime === '') {
+        $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+        if ($extension === 'svg') {
+            $mime = 'image/svg+xml';
+        }
+    }
+
+    $extMap = [
+        'image/png' => 'png',
+        'image/jpeg' => 'jpg',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+        'image/svg+xml' => 'svg',
+        'text/plain' => 'svg',
+    ];
+    if (!isset($extMap[$mime])) {
+        throw new RuntimeException('Format logo belum didukung. Gunakan PNG, JPG, WEBP, GIF, atau SVG.');
+    }
+
+    $dir = __DIR__ . '/uploads/branding';
+    ensureDirectory($dir);
+    $filename = 'logo-' . date('YmdHis') . '.' . $extMap[$mime];
+    $target = $dir . '/' . $filename;
+
+    if (!move_uploaded_file($tmp, $target)) {
+        throw new RuntimeException('Gagal menyimpan logo ke server.');
+    }
+
+    return 'uploads/branding/' . $filename;
+}
+
 function invoiceNumberByParts(int $id, int $month, int $year): string
 {
     return sprintf('MBL/%04d%02d/%05d', $year, $month, $id);

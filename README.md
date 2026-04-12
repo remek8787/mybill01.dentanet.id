@@ -1,4 +1,4 @@
-# MYBILL RT/RW NET
+# MyBill Network
 
 Fondasi aplikasi billing RT/RW Net berbasis **PHP + SQLite** tanpa phpMyAdmin, sekarang sudah disiapkan untuk workflow **billing pelanggan MikroTik**.
 

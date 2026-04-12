@@ -48,12 +48,12 @@ require __DIR__ . '/includes/header.php';
   <div class="dashboard-hero-compact-row">
     <div class="dashboard-hero-compact-main">
       <div class="dashboard-hero-logo-inline">
-        <img src="assets/app-logo.svg" alt="Logo <?= e(companyName()) ?>" class="dashboard-hero-logo dashboard-hero-logo--mini">
+        <img src="<?= e(brandingLogoPath()) ?>" alt="Logo <?= e(companyName()) ?>" class="dashboard-hero-logo dashboard-hero-logo--mini">
       </div>
       <div>
         <div class="dashboard-hero-kicker">Dashboard Billing</div>
         <h2 class="dashboard-hero-title dashboard-hero-title--compact"><?= e(companyName()) ?></h2>
-        <div class="small text-secondary">Billing pelanggan MikroTik, invoice barcode, dan kontrol isolir dari panel admin.</div>
+        <div class="small text-secondary"><?= e(billingTagline()) ?></div>
       </div>
     </div>
     <div class="dashboard-hero-actions dashboard-hero-actions--compact">

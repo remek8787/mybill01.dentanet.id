@@ -154,6 +154,8 @@ function seedDefaults(PDO $pdo): void
 
     $insertSetting = $pdo->prepare('INSERT OR IGNORE INTO settings(key, value) VALUES(:key, :value)');
     $insertSetting->execute([':key' => 'company_name', ':value' => APP_NAME]);
+    $insertSetting->execute([':key' => 'billing_tagline', ':value' => 'Billing internet yang rapi, cepat, dan siap konek ke MikroTik.']);
+    $insertSetting->execute([':key' => 'company_logo', ':value' => '']);
     $insertSetting->execute([':key' => 'company_address', ':value' => 'Isi alamat kantor / basecamp RT/RW Net']);
     $insertSetting->execute([':key' => 'company_phone', ':value' => '0812xxxxxxxx']);
     $insertSetting->execute([':key' => 'company_note', ':value' => 'Billing RT/RW Net siap konek MikroTik API, cetak invoice barcode, dan bisa diubah dari menu pengaturan.']);

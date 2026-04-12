@@ -12,11 +12,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'update_company') {
-        updateSetting('company_name', trim((string) ($_POST['company_name'] ?? APP_NAME)));
-        updateSetting('company_address', trim((string) ($_POST['company_address'] ?? '')));
-        updateSetting('company_phone', trim((string) ($_POST['company_phone'] ?? '')));
-        updateSetting('company_note', trim((string) ($_POST['company_note'] ?? '')));
-        flash('success', 'Profil usaha berhasil diperbarui.');
+        try {
+            updateSetting('company_name', trim((string) ($_POST['company_name'] ?? APP_NAME)));
+            updateSetting('billing_tagline', trim((string) ($_POST['billing_tagline'] ?? billingTagline())));
+            updateSetting('company_address', trim((string) ($_POST['company_address'] ?? '')));
+            updateSetting('company_phone', trim((string) ($_POST['company_phone'] ?? '')));
+            updateSetting('company_note', trim((string) ($_POST['company_note'] ?? '')));
+
+            if (isset($_POST['remove_company_logo'])) {
+                updateSetting('company_logo', '');
+            }
+
+            if (isset($_FILES['company_logo'])) {
+                $logoPath = saveBrandLogoUpload($_FILES['company_logo']);
+                if ($logoPath !== null) {
+                    updateSetting('company_logo', $logoPath);
+                }
+            }
+
+            flash('success', 'Profil usaha berhasil diperbarui.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
         header('Location: settings.php');
         exit;
     }
@@ -92,11 +109,28 @@ require __DIR__ . '/includes/header.php';
 <div class="grid md:grid-cols-2 gap-4">
   <section class="bg-white rounded-xl shadow p-4">
     <h2 class="font-semibold mb-3">Profil Usaha / Billing</h2>
-    <form method="post" class="space-y-3">
+    <form method="post" enctype="multipart/form-data" class="space-y-3">
       <input type="hidden" name="action" value="update_company">
       <div>
-        <label class="text-sm">Nama Aplikasi / Usaha</label>
+        <label class="text-sm">Nama Billing / Aplikasi</label>
         <input name="company_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('company_name', APP_NAME)) ?>">
+      </div>
+      <div>
+        <label class="text-sm">Tagline / Subjudul</label>
+        <input name="billing_tagline" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(billingTagline()) ?>" placeholder="contoh: Billing pelanggan internet yang rapi dan modern">
+      </div>
+      <div class="brand-logo-settings-card">
+        <div class="brand-logo-settings-preview">
+          <img src="<?= e(brandingLogoPath()) ?>" alt="<?= e(companyName()) ?>">
+        </div>
+        <div class="brand-logo-settings-form">
+          <label class="text-sm">Logo Billing</label>
+          <input type="file" name="company_logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" class="mt-1 w-full border rounded px-3 py-2">
+          <div class="text-xs text-slate-500 mt-1">Bisa upload logo baru. Format: PNG, JPG, WEBP, GIF, atau SVG. Maksimal 2 MB.</div>
+          <?php if (trim(appSettingText('company_logo')) !== ''): ?>
+            <label class="inline-flex items-center gap-2 text-sm mt-2"><input type="checkbox" name="remove_company_logo"> Hapus logo custom dan kembali ke logo default</label>
+          <?php endif; ?>
+        </div>
       </div>
       <div>
         <label class="text-sm">Alamat</label>

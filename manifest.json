@@ -1,6 +1,6 @@
 {
-  "name": "MYBILL RT/RW NET",
-  "short_name": "MYBILL",
+  "name": "MyBill Network",
+  "short_name": "MyBill",
   "start_url": "./dashboard.php",
   "display": "standalone",
   "background_color": "#0f172a",

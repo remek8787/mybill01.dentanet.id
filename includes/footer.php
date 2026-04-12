@@ -1,7 +1,7 @@
     </main>
 
     <footer class="app-footer">
-      Copyright © <a href="https://remek8787.github.io/portofolio/" target="_blank" rel="noopener noreferrer">Ananta Satriya</a> • Billing RT/RW Net • SQLite + MikroTik Ready
+      Copyright © <a href="https://remek8787.github.io/portofolio/" target="_blank" rel="noopener noreferrer">Ananta Satriya</a> • <?= e(companyName()) ?> • SQLite + MikroTik Ready
     </footer>
   </div>
 </div>

@@ -1,9 +1,9 @@
 (() => {
-  const THEME_KEY = 'billing_air_theme';
-  const SIDEBAR_KEY = 'billing_air_sidebar';
-  const INSTALL_DISMISSED_KEY = 'billing_air_install_prompt_dismissed_at';
-  const INSTALL_INSTALLED_KEY = 'billing_air_install_installed';
-  const ANNOUNCEMENT_DISMISS_PREFIX = 'billing_air_announcement_dismissed_';
+  const THEME_KEY = 'mybill_theme';
+  const SIDEBAR_KEY = 'mybill_sidebar';
+  const INSTALL_DISMISSED_KEY = 'mybill_install_prompt_dismissed_at';
+  const INSTALL_INSTALLED_KEY = 'mybill_install_installed';
+  const ANNOUNCEMENT_DISMISS_PREFIX = 'mybill_announcement_dismissed_';
   const body = document.body;
   const layout = document.getElementById('appLayout');
   const sidebarToggle = document.getElementById('sidebarToggle');

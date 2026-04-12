@@ -40,35 +40,53 @@ $flash = getFlash();
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="assets/style.css">
 </head>
-<body data-theme="light" class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-md bg-white rounded-2xl shadow p-6">
-    <div class="text-center mb-4">
-      <img src="assets/app-logo.svg" alt="<?= e(companyName()) ?>" class="login-brand-logo mx-auto mb-3">
-    </div>
-    <h1 class="text-2xl font-bold mb-2"><?= e(companyName()) ?></h1>
-    <p class="text-sm text-slate-600 mb-5">Billing RT/RW Net siap deploy ke hosting dan siap konek ke API custom.</p>
-
-    <?php if ($flash): ?>
-      <div class="mb-4 px-4 py-3 rounded text-sm <?= $flash['type'] === 'error' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800' ?>">
-        <?= e((string) $flash['message']) ?>
+<body data-theme="light" class="login-screen">
+  <div class="login-shell">
+    <section class="login-showcase">
+      <div class="login-showcase-badge">ISP Billing Dashboard</div>
+      <div class="login-showcase-logo-wrap">
+        <img src="<?= e(brandingLogoPath()) ?>" alt="<?= e(companyName()) ?>" class="login-brand-logo">
       </div>
-    <?php endif; ?>
-
-    <form method="post" class="space-y-3">
-      <div>
-        <label class="text-sm font-medium">Username</label>
-        <input name="username" required class="mt-1 w-full border rounded px-3 py-2" placeholder="contoh: admin">
+      <h1 class="login-showcase-title"><?= e(companyName()) ?></h1>
+      <p class="login-showcase-text"><?= e(billingTagline()) ?></p>
+      <div class="login-showcase-points">
+        <div class="login-showcase-point"><i class="bi bi-hdd-network"></i><span>Konek MikroTik, secret, dan profile dari dashboard</span></div>
+        <div class="login-showcase-point"><i class="bi bi-receipt-cutoff"></i><span>Invoice rapi, barcode, dan monitoring tagihan</span></div>
+        <div class="login-showcase-point"><i class="bi bi-brush"></i><span>Nama billing dan logo bisa dicustom dari panel admin</span></div>
       </div>
-      <div>
-        <label class="text-sm font-medium">Password</label>
-        <input name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" placeholder="••••••••">
-      </div>
-      <button class="w-full bg-slate-900 text-white rounded py-2 hover:bg-slate-700">Masuk</button>
-    </form>
+    </section>
 
-    <div class="mt-4 text-xs text-slate-500">
-      Login awal: <b>admin / admin123</b>
-    </div>
+    <section class="login-panel">
+      <div class="login-panel-head">
+        <div>
+          <div class="login-panel-kicker">Admin Login</div>
+          <h2 class="login-panel-title">Masuk ke dashboard</h2>
+          <p class="login-panel-text">Gunakan akun admin atau staff untuk mengelola pelanggan, tagihan, dan integrasi MikroTik.</p>
+        </div>
+      </div>
+
+      <?php if ($flash): ?>
+        <div class="mb-4 px-4 py-3 rounded text-sm <?= $flash['type'] === 'error' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800' ?>">
+          <?= e((string) $flash['message']) ?>
+        </div>
+      <?php endif; ?>
+
+      <form method="post" class="space-y-3">
+        <div>
+          <label class="text-sm font-medium">Username</label>
+          <input name="username" required class="mt-1 w-full border rounded px-3 py-2" placeholder="contoh: admin">
+        </div>
+        <div>
+          <label class="text-sm font-medium">Password</label>
+          <input name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" placeholder="••••••••">
+        </div>
+        <button class="w-full btn btn-primary login-submit-btn">Masuk ke Dashboard</button>
+      </form>
+
+      <div class="login-default-note mt-4">
+        Login awal: <b>admin / admin123</b>
+      </div>
+    </section>
   </div>
   <script src="assets/app.js"></script>
 </body>

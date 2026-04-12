@@ -26,9 +26,14 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
 <div class="app-layout" id="appLayout">
   <aside class="app-sidebar" id="appSidebar">
-    <div class="mb-4">
-      <h1 class="app-title"><?= e(companyName()) ?></h1>
-      <div class="app-subtitle">Billing RT/RW Net, SQLite, invoice barcode, siap konek MikroTik</div>
+    <div class="brand-sidebar-card mb-4">
+      <div class="brand-sidebar-logo-wrap">
+        <img src="<?= e(brandingLogoPath()) ?>" alt="<?= e(companyName()) ?>" class="brand-sidebar-logo">
+      </div>
+      <div>
+        <h1 class="app-title"><?= e(companyName()) ?></h1>
+        <div class="app-subtitle"><?= e(billingTagline()) ?></div>
+      </div>
     </div>
 
     <?php if ($user): ?>
@@ -50,10 +55,13 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
   <div class="app-content-wrap">
     <header class="app-topbar">
-      <div class="d-flex align-items-center gap-2">
-        <img src="assets/app-logo.svg" alt="<?= e(companyName()) ?>" class="topbar-logo">
+      <div class="d-flex align-items-center gap-2 topbar-brand-wrap">
+        <img src="<?= e(brandingLogoPath()) ?>" alt="<?= e(companyName()) ?>" class="topbar-logo">
         <button class="btn btn-sm btn-outline-secondary" id="sidebarToggle" type="button" title="Hide/Show Sidebar"><i class="bi bi-layout-sidebar"></i></button>
-        <span class="small text-secondary"><?= e(companyName()) ?></span>
+        <div>
+          <div class="small fw-semibold"><?= e(companyName()) ?></div>
+          <div class="topbar-tagline"><?= e(billingTagline()) ?></div>
+        </div>
       </div>
 
       <?php if ($user): ?>
