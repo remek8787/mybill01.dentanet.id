@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/vendor/routeros_api.class.php';
 
 if (!function_exists('str_contains')) {
     function str_contains(string $haystack, string $needle): bool
@@ -759,29 +760,51 @@ function mikrotikIsConfigured(): bool
     return $config['host'] !== '' && $config['username'] !== '' && $config['password'] !== '';
 }
 
-function mikrotikClient(): RouterOsApiClient
+function mikrotikClient(): RouterosAPI
 {
     $config = mikrotikConfig();
     if ($config['host'] === '' || $config['username'] === '' || $config['password'] === '') {
         throw new RuntimeException('Konfigurasi MikroTik belum lengkap. Isi host, username, password, dan port di Pengaturan.');
     }
 
-    $client = new RouterOsApiClient(
-        $config['host'],
-        (int) $config['port'],
-        (bool) $config['use_ssl'],
-        (int) $config['timeout'],
-    );
-    $client->connect((string) $config['username'], (string) $config['password']);
+    $client = new RouterosAPI();
+    $client->debug = false;
+    $client->ssl = (bool) $config['use_ssl'];
+    $client->port = (int) $config['port'];
+    $client->timeout = max(3, (int) $config['timeout']);
+
+    $connected = $client->connect((string) $config['host'], (string) $config['username'], (string) $config['password']);
+    if (!$connected) {
+        throw new RuntimeException('Gagal konek ke MikroTik: Connection refused atau port API tidak terbuka.');
+    }
 
     return $client;
+}
+
+function normalizeMikrotikRows(array $rows): array
+{
+    $normalized = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $item = [];
+        foreach ($row as $key => $value) {
+            $normalizedKey = $key === '.id' ? 'id' : $key;
+            $item[(string) $normalizedKey] = $value;
+        }
+        $normalized[] = $item;
+    }
+
+    return $normalized;
 }
 
 function mikrotikTestConnection(): array
 {
     $client = mikrotikClient();
-    $identity = $client->command('/system/identity/print', [], ['name']);
-    $resource = $client->command('/system/resource/print', [], ['version', 'board-name', 'uptime']);
+    $identity = normalizeMikrotikRows($client->comm('/system/identity/print', ['.proplist' => 'name']));
+    $resource = normalizeMikrotikRows($client->comm('/system/resource/print', ['.proplist' => 'version,board-name,uptime']));
     $client->disconnect();
 
     return [
@@ -795,7 +818,7 @@ function mikrotikTestConnection(): array
 function mikrotikFetchPppProfiles(): array
 {
     $client = mikrotikClient();
-    $profiles = $client->command('/ppp/profile/print', [], ['.id', 'name', 'rate-limit', 'only-one', 'local-address', 'remote-address']);
+    $profiles = normalizeMikrotikRows($client->comm('/ppp/profile/print', ['.proplist' => '.id,name,rate-limit,only-one,local-address,remote-address']));
     $client->disconnect();
 
     usort($profiles, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
@@ -805,7 +828,7 @@ function mikrotikFetchPppProfiles(): array
 function mikrotikFetchPppSecrets(): array
 {
     $client = mikrotikClient();
-    $secrets = $client->command('/ppp/secret/print', [], ['.id', 'name', 'profile', 'service', 'disabled', 'comment', 'caller-id', 'last-logged-out', 'last-logged-in', 'remote-address']);
+    $secrets = normalizeMikrotikRows($client->comm('/ppp/secret/print', ['.proplist' => '.id,name,profile,service,disabled,comment,caller-id,last-logged-out,last-logged-in,remote-address']));
     $client->disconnect();
 
     usort($secrets, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
@@ -815,21 +838,21 @@ function mikrotikFetchPppSecrets(): array
 function mikrotikEnableSecret(string $secretId): void
 {
     $client = mikrotikClient();
-    $client->command('/ppp/secret/enable', ['.id' => $secretId]);
+    $client->comm('/ppp/secret/enable', ['.id' => $secretId]);
     $client->disconnect();
 }
 
 function mikrotikDisableSecret(string $secretId): void
 {
     $client = mikrotikClient();
-    $client->command('/ppp/secret/disable', ['.id' => $secretId]);
+    $client->comm('/ppp/secret/disable', ['.id' => $secretId]);
     $client->disconnect();
 }
 
 function mikrotikSetSecretProfile(string $secretId, string $profileName): void
 {
     $client = mikrotikClient();
-    $client->command('/ppp/secret/set', ['.id' => $secretId, 'profile' => $profileName]);
+    $client->comm('/ppp/secret/set', ['.id' => $secretId, 'profile' => $profileName]);
     $client->disconnect();
 }
 
