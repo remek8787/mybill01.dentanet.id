@@ -239,11 +239,13 @@
       }
     };
 
+    safeHide();
     document.addEventListener('DOMContentLoaded', safeHide);
     window.addEventListener('load', safeHide);
     window.addEventListener('pageshow', safeHide);
-    setTimeout(safeHide, 1200);
-    setTimeout(safeHide, 3000);
+    setTimeout(safeHide, 150);
+    setTimeout(safeHide, 800);
+    setTimeout(safeHide, 2000);
 
     document.addEventListener('click', (event) => {
       const link = event.target.closest('a[href]');

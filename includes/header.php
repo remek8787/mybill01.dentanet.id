@@ -20,7 +20,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body data-theme="light">
-<div class="app-loader" id="appLoader">
+<div class="app-loader hide" id="appLoader">
   <div class="spinner-border text-primary" role="status"></div>
   <div class="mt-2">Loading dashboard...</div>
 </div>
