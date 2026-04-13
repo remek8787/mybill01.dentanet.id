@@ -18,6 +18,10 @@ $unpaidTotal = (int) $pdo->query("SELECT COALESCE(SUM(amount - discount_amount),
 $paidTotal = (int) $pdo->query("SELECT COALESCE(SUM(amount - discount_amount),0) FROM invoices WHERE status = 'paid'")->fetchColumn();
 $isolatedCount = (int) $pdo->query("SELECT COUNT(*) FROM customers WHERE status = 'suspended'")->fetchColumn();
 
+$stmtIncomeToday = $pdo->prepare("SELECT COALESCE(SUM(amount - discount_amount),0) FROM invoices WHERE status = 'paid' AND date(paid_at) = :today");
+$stmtIncomeToday->execute([':today' => date('Y-m-d')]);
+$incomeToday = (int) $stmtIncomeToday->fetchColumn();
+
 $stmtPaidMonth = $pdo->prepare("SELECT COUNT(DISTINCT customer_id) FROM invoices WHERE status = 'paid' AND period_month = :month AND period_year = :year");
 $stmtPaidMonth->execute([':month' => $currentMonth, ':year' => $currentYear]);
 $paidCustomerCount = (int) $stmtPaidMonth->fetchColumn();
@@ -29,6 +33,8 @@ $unpaidCustomerCount = (int) $stmtUnpaidMonth->fetchColumn();
 $stmtPaidMonthRevenue = $pdo->prepare("SELECT COALESCE(SUM(amount - discount_amount),0) FROM invoices WHERE status = 'paid' AND period_month = :month AND period_year = :year");
 $stmtPaidMonthRevenue->execute([':month' => $currentMonth, ':year' => $currentYear]);
 $paidMonthRevenue = (int) $stmtPaidMonthRevenue->fetchColumn();
+
+$totalCustomers = $customerCount;
 
 $recentInvoices = $pdo->query('SELECT i.*, c.full_name AS customer_name, c.area, c.service_username, p.name AS package_name, p.speed
     FROM invoices i
@@ -54,26 +60,42 @@ require __DIR__ . '/includes/header.php';
 
 <section class="isp-tile-grid mb-4">
   <a class="isp-stat-tile isp-stat-tile--green" href="customers.php">
-    <div class="isp-stat-tile__value"><?= $customerCount ?></div>
+    <div class="isp-stat-tile__value"><?= $totalCustomers ?></div>
     <div class="isp-stat-tile__label">Data Pelanggan</div>
-    <div class="isp-stat-tile__sub">Pelanggan aktif + tersimpan</div>
+    <div class="isp-stat-tile__sub">Seluruh pelanggan tersimpan</div>
     <div class="isp-stat-tile__icon"><i class="fa-solid fa-users"></i></div>
     <div class="isp-stat-tile__footer">Selengkapnya <i class="fa-solid fa-circle-arrow-right"></i></div>
   </a>
 
-  <a class="isp-stat-tile isp-stat-tile--blue" href="bills.php?status=paid&month=<?= $currentMonth ?>&year=<?= $currentYear ?>">
-    <div class="isp-stat-tile__value"><?= $paidCustomerCount ?> | <?= e(rupiah($paidMonthRevenue)) ?></div>
-    <div class="isp-stat-tile__label">Pelanggan Sudah Lunas</div>
+  <a class="isp-stat-tile isp-stat-tile--blue" href="customers_paid.php?month=<?= $currentMonth ?>&year=<?= $currentYear ?>">
+    <div class="isp-stat-tile__value"><?= $paidCustomerCount ?></div>
+    <div class="isp-stat-tile__label">Data Pelanggan Lunas</div>
     <div class="isp-stat-tile__sub">Periode <?= e($monthLabel) ?></div>
-    <div class="isp-stat-tile__icon"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+    <div class="isp-stat-tile__icon"><i class="fa-solid fa-user-check"></i></div>
     <div class="isp-stat-tile__footer">Selengkapnya <i class="fa-solid fa-circle-arrow-right"></i></div>
   </a>
 
-  <a class="isp-stat-tile isp-stat-tile--red" href="bills.php?status=unpaid&month=<?= $currentMonth ?>&year=<?= $currentYear ?>">
-    <div class="isp-stat-tile__value"><?= $unpaidCustomerCount ?> | <?= e(rupiah($unpaidTotal)) ?></div>
-    <div class="isp-stat-tile__label">Pelanggan Belum Lunas</div>
+  <a class="isp-stat-tile isp-stat-tile--red" href="customers_unpaid.php?month=<?= $currentMonth ?>&year=<?= $currentYear ?>">
+    <div class="isp-stat-tile__value"><?= $unpaidCustomerCount ?></div>
+    <div class="isp-stat-tile__label">Data Pelanggan Belum Lunas</div>
     <div class="isp-stat-tile__sub">Periode <?= e($monthLabel) ?></div>
-    <div class="isp-stat-tile__icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+    <div class="isp-stat-tile__icon"><i class="fa-solid fa-user-clock"></i></div>
+    <div class="isp-stat-tile__footer">Selengkapnya <i class="fa-solid fa-circle-arrow-right"></i></div>
+  </a>
+
+  <a class="isp-stat-tile isp-stat-tile--emerald-deep" href="income_report.php?range=today">
+    <div class="isp-stat-tile__value"><?= e(rupiah($incomeToday)) ?></div>
+    <div class="isp-stat-tile__label">Pemasukan Hari Ini</div>
+    <div class="isp-stat-tile__sub">Tanggal <?= e(formatDateId(date('Y-m-d'), '-')) ?></div>
+    <div class="isp-stat-tile__icon"><i class="fa-solid fa-sack-dollar"></i></div>
+    <div class="isp-stat-tile__footer">Selengkapnya <i class="fa-solid fa-circle-arrow-right"></i></div>
+  </a>
+
+  <a class="isp-stat-tile isp-stat-tile--cyan" href="income_report.php?range=month">
+    <div class="isp-stat-tile__value"><?= e(rupiah($paidMonthRevenue)) ?></div>
+    <div class="isp-stat-tile__label">Pemasukan Bulan Ini</div>
+    <div class="isp-stat-tile__sub"><?= e($monthLabel) ?></div>
+    <div class="isp-stat-tile__icon"><i class="fa-solid fa-money-bill-trend-up"></i></div>
     <div class="isp-stat-tile__footer">Selengkapnya <i class="fa-solid fa-circle-arrow-right"></i></div>
   </a>
 
@@ -85,29 +107,13 @@ require __DIR__ . '/includes/header.php';
     <div class="isp-stat-tile__footer">Selengkapnya <i class="fa-solid fa-circle-arrow-right"></i></div>
   </a>
 
-  <div class="isp-stat-tile isp-stat-tile--cyan">
-    <div class="isp-stat-tile__value"><?= $invoiceCount ?></div>
-    <div class="isp-stat-tile__label">Total Invoice</div>
-    <div class="isp-stat-tile__sub">Semua periode tersimpan</div>
-    <div class="isp-stat-tile__icon"><i class="fa-regular fa-file-lines"></i></div>
-    <div class="isp-stat-tile__footer">Billing tersusun rapi <i class="fa-solid fa-check"></i></div>
-  </div>
-
-  <div class="isp-stat-tile isp-stat-tile--yellow">
+  <a class="isp-stat-tile isp-stat-tile--yellow" href="bills.php?status=unpaid">
     <div class="isp-stat-tile__value"><?= $unpaidCount ?></div>
     <div class="isp-stat-tile__label">Invoice Open</div>
     <div class="isp-stat-tile__sub">Belum lunas semua periode</div>
     <div class="isp-stat-tile__icon"><i class="fa-regular fa-folder-open"></i></div>
     <div class="isp-stat-tile__footer">Prioritas follow up <i class="fa-solid fa-circle-arrow-right"></i></div>
-  </div>
-
-  <div class="isp-stat-tile isp-stat-tile--navy">
-    <div class="isp-stat-tile__value"><?= $paidCustomerCount ?></div>
-    <div class="isp-stat-tile__label">Status Langganan On</div>
-    <div class="isp-stat-tile__sub">Sudah lunas bulan ini</div>
-    <div class="isp-stat-tile__icon"><i class="fa-solid fa-satellite-dish"></i></div>
-    <div class="isp-stat-tile__footer"><?= e($monthLabel) ?> <i class="fa-solid fa-circle-arrow-right"></i></div>
-  </div>
+  </a>
 
   <div class="isp-stat-tile isp-stat-tile--pink">
     <div class="isp-stat-tile__value"><?= $isolatedCount ?></div>
