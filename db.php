@@ -60,6 +60,16 @@ function initializeDatabase(PDO $pdo): void
     );
 
     $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS areas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )'
+    );
+
+    $pdo->exec(
         'CREATE TABLE IF NOT EXISTS customers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             customer_no TEXT,
@@ -114,6 +124,7 @@ function initializeDatabase(PDO $pdo): void
 
     runMigrations($pdo);
     seedDefaults($pdo);
+    syncAreasFromCustomers($pdo);
 }
 
 function runMigrations(PDO $pdo): void
@@ -203,5 +214,26 @@ function seedDefaults(PDO $pdo): void
         $pdo->exec("INSERT INTO packages(name, speed, price, description, api_plan_id, mikrotik_profile_name, is_active) VALUES
             ('Paket Basic', '10 Mbps', 100000, 'Contoh paket awal untuk pelanggan RT/RW Net.', '', 'basic', 1),
             ('Paket Pro', '20 Mbps', 150000, 'Paket lebih cepat untuk pelanggan aktif.', '', 'pro', 1)");
+    }
+}
+
+function syncAreasFromCustomers(PDO $pdo): void
+{
+    $stmt = $pdo->query("SELECT DISTINCT TRIM(area) AS area_name FROM customers WHERE TRIM(COALESCE(area, '')) <> ''");
+    $areas = $stmt->fetchAll();
+    if (!$areas) {
+        return;
+    }
+
+    $insert = $pdo->prepare('INSERT OR IGNORE INTO areas(name, description, is_active) VALUES(:name, :description, 1)');
+    foreach ($areas as $row) {
+        $name = trim((string) ($row['area_name'] ?? ''));
+        if ($name === '') {
+            continue;
+        }
+        $insert->execute([
+            ':name' => $name,
+            ':description' => 'Wilayah pelanggan ' . $name,
+        ]);
     }
 }

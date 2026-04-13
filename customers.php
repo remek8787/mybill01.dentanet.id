@@ -104,6 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Pelanggan berhasil ditambahkan.');
         }
 
+        if ($area !== '') {
+            $pdo->prepare('INSERT OR IGNORE INTO areas(name, description, is_active) VALUES(:name, :description, 1)')->execute([
+                ':name' => $area,
+                ':description' => 'Wilayah pelanggan ' . $area,
+            ]);
+        }
+
         header('Location: customers.php');
         exit;
     }
@@ -127,11 +134,22 @@ if ($editId > 0) {
     $editCustomer = $stmt->fetch() ?: null;
 }
 
+$areaFilter = trim((string) ($_GET['area_filter'] ?? ''));
 $packages = $pdo->query('SELECT * FROM packages WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
-$customers = $pdo->query('SELECT c.*, p.name AS package_name, p.speed, p.mikrotik_profile_name AS package_mikrotik_profile
+$areas = $pdo->query('SELECT * FROM areas WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
+
+$sqlCustomers = 'SELECT c.*, p.name AS package_name, p.speed, p.mikrotik_profile_name AS package_mikrotik_profile
     FROM customers c
-    LEFT JOIN packages p ON p.id = c.package_id
-    ORDER BY c.id DESC')->fetchAll();
+    LEFT JOIN packages p ON p.id = c.package_id';
+$paramsCustomers = [];
+if ($areaFilter !== '') {
+    $sqlCustomers .= ' WHERE c.area = :area';
+    $paramsCustomers[':area'] = $areaFilter;
+}
+$sqlCustomers .= ' ORDER BY c.id DESC';
+$stmtCustomers = $pdo->prepare($sqlCustomers);
+$stmtCustomers->execute($paramsCustomers);
+$customers = $stmtCustomers->fetchAll();
 
 $activeCustomers = 0;
 $suspendedCustomers = 0;
@@ -206,7 +224,12 @@ require __DIR__ . '/includes/header.php';
         </div>
         <div>
           <label class="text-sm">Area / Wilayah</label>
-          <input name="area" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['area'] ?? '')) ?>" placeholder="contoh: RW 05 / Cluster A">
+          <input name="area" list="area_options" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['area'] ?? '')) ?>" placeholder="contoh: RW 05 / Cluster A">
+          <datalist id="area_options">
+            <?php foreach ($areas as $areaRow): ?>
+              <option value="<?= e((string) $areaRow['name']) ?>"></option>
+            <?php endforeach; ?>
+          </datalist>
         </div>
       </div>
       <div>
@@ -286,6 +309,19 @@ require __DIR__ . '/includes/header.php';
       <h2 class="font-semibold mb-0">Daftar Pelanggan</h2>
       <div class="small text-secondary">Menampilkan data pelanggan, layanan, dan status billing dengan layout yang lebih ringkas.</div>
     </div>
+    <form class="grid md:grid-cols-3 gap-2 text-sm mb-4">
+      <select name="area_filter" class="border rounded px-3 py-2">
+        <option value="">Semua wilayah</option>
+        <?php foreach ($areas as $areaRow): ?>
+          <option value="<?= e((string) $areaRow['name']) ?>" <?= $areaFilter === (string) $areaRow['name'] ? 'selected' : '' ?>><?= e((string) $areaRow['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <div></div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary"><i class="fa-solid fa-filter me-1"></i>Filter Wilayah</button>
+        <a href="customers.php" class="btn btn-outline-secondary"><i class="fa-solid fa-rotate-left me-1"></i>Reset</a>
+      </div>
+    </form>
     <div class="overflow-auto table-wrap">
       <table class="min-w-full text-sm js-data-table table-soft" data-page-size="10">
         <thead>

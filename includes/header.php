@@ -49,6 +49,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
       <nav class="side-nav">
         <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</a>
         <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="fa-solid fa-users-viewfinder me-2"></i>Data Pelanggan</a>
+        <a class="side-link <?= $currentPage === 'areas.php' ? 'active' : '' ?>" href="areas.php"><i class="fa-solid fa-map-location-dot me-2"></i>Master Wilayah</a>
         <a class="side-link <?= $currentPage === 'customers_paid.php' ? 'active' : '' ?>" href="customers_paid.php"><i class="fa-solid fa-user-check me-2"></i>Pelanggan Lunas</a>
         <a class="side-link <?= $currentPage === 'customers_unpaid.php' ? 'active' : '' ?>" href="customers_unpaid.php"><i class="fa-solid fa-user-clock me-2"></i>Belum Lunas</a>
         <a class="side-link <?= $currentPage === 'income_report.php' ? 'active' : '' ?>" href="income_report.php"><i class="fa-solid fa-wallet me-2"></i>Pemasukan</a>

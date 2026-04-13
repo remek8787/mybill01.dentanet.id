@@ -9,6 +9,7 @@ $pdo = db();
 $month = max(1, min(12, (int) ($_GET['month'] ?? date('n'))));
 $year = max(2024, (int) ($_GET['year'] ?? date('Y')));
 $search = trim((string) ($_GET['q'] ?? ''));
+$format = trim((string) ($_GET['format'] ?? ''));
 
 $params = [':month' => $month, ':year' => $year];
 $whereSearch = '';
@@ -36,6 +37,29 @@ foreach ($rows as $row) {
     $paidTotal += (int) ($row['paid_total'] ?? 0);
 }
 
+if ($format === 'xls') {
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename="pelanggan-lunas-' . $month . '-' . $year . '.xls"');
+    echo "<table border='1'><tr><th>Pelanggan</th><th>Paket</th><th>Area</th><th>Invoice Lunas</th><th>Total Bayar</th><th>Bayar Terakhir</th></tr>";
+    foreach ($rows as $row) {
+        echo '<tr>'
+            . '<td>' . e((string) $row['full_name']) . '</td>'
+            . '<td>' . e(packageLabel($row)) . '</td>'
+            . '<td>' . e((string) ($row['area'] ?: '-')) . '</td>'
+            . '<td>' . (int) ($row['paid_invoice_count'] ?? 0) . '</td>'
+            . '<td>' . e(rupiah((int) ($row['paid_total'] ?? 0))) . '</td>'
+            . '<td>' . e(formatDateTimeId((string) ($row['last_paid_at'] ?? ''), '-')) . '</td>'
+            . '</tr>';
+    }
+    echo '</table>';
+    exit;
+}
+
+if ($format === 'pdf') {
+    ?><!doctype html><html lang="id"><head><meta charset="utf-8"><title>Pelanggan Lunas</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#f1f5f9}</style></head><body onload="window.print()"><h1>Pelanggan Lunas <?= e(periodLabel($month, $year)) ?></h1><table><tr><th>Pelanggan</th><th>Paket</th><th>Area</th><th>Invoice Lunas</th><th>Total Bayar</th><th>Bayar Terakhir</th></tr><?php foreach ($rows as $row): ?><tr><td><?= e((string) $row['full_name']) ?></td><td><?= e(packageLabel($row)) ?></td><td><?= e((string) ($row['area'] ?: '-')) ?></td><td><?= (int) ($row['paid_invoice_count'] ?? 0) ?></td><td><?= e(rupiah((int) ($row['paid_total'] ?? 0))) ?></td><td><?= e(formatDateTimeId((string) ($row['last_paid_at'] ?? ''), '-')) ?></td></tr><?php endforeach; ?></table></body></html><?php
+    exit;
+}
+
 require __DIR__ . '/includes/header.php';
 ?>
 
@@ -61,7 +85,11 @@ require __DIR__ . '/includes/header.php';
 <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <h2 class="font-semibold mb-0">Daftar Pelanggan Lunas</h2>
-    <a href="dashboard.php" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Dashboard</a>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="customers_paid.php?month=<?= $month ?>&year=<?= $year ?>&q=<?= urlencode($search) ?>&format=xls" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-excel me-1"></i>Excel</a>
+      <a href="customers_paid.php?month=<?= $month ?>&year=<?= $year ?>&q=<?= urlencode($search) ?>&format=pdf" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-pdf me-1"></i>PDF</a>
+      <a href="dashboard.php" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Dashboard</a>
+    </div>
   </div>
 
   <form class="grid md:grid-cols-4 gap-2 text-sm mb-4">
