@@ -25,14 +25,9 @@ $isolatedCount = (int) $pdo->query("SELECT COUNT(*) FROM customers WHERE isolate
 $mikrotikReady = mikrotikIsConfigured();
 $mikrotikSummary = null;
 $mikrotikError = '';
-
-if ($mikrotikReady) {
-    try {
-        $mikrotikSummary = mikrotikTestConnection();
-    } catch (Throwable $e) {
-        $mikrotikError = $e->getMessage();
-    }
-}
+$mikrotikStatusText = !$mikrotikReady
+    ? 'Belum dikonfigurasi'
+    : 'Siap dipakai, tes manual dari menu MikroTik API';
 
 $recentInvoices = $pdo->query('SELECT i.*, c.full_name AS customer_name, c.area, c.service_username, c.mikrotik_profile_name,
         p.name AS package_name, p.speed
@@ -47,7 +42,7 @@ $reactDashboardProps = [
     'unpaidCustomerCount' => $unpaidCustomerCount,
     'isolatedCount' => $isolatedCount,
     'unpaidTotal' => rupiah($unpaidTotal),
-    'routerStatus' => !$mikrotikReady ? 'Belum disetting' : ($mikrotikError !== '' ? 'Koneksi bermasalah' : ((string) ($mikrotikSummary['identity'] ?? 'Router aktif'))),
+    'routerStatus' => $mikrotikStatusText,
 ];
 
 require __DIR__ . '/includes/header.php';
@@ -145,12 +140,9 @@ require __DIR__ . '/includes/header.php';
     <?php if (!$mikrotikReady): ?>
       <p class="text-sm text-amber-700 fw-semibold">Belum dikonfigurasi</p>
       <div class="text-xs text-slate-500 mt-1">Isi host, port, username, dan password di Pengaturan.</div>
-    <?php elseif ($mikrotikError !== ''): ?>
-      <p class="text-sm text-red-700 fw-semibold">Koneksi gagal</p>
-      <div class="text-xs text-slate-500 mt-1"><?= e($mikrotikError) ?></div>
     <?php else: ?>
-      <p class="text-lg font-bold text-emerald-600"><?= e((string) ($mikrotikSummary['identity'] ?? 'Router OK')) ?></p>
-      <div class="text-xs text-slate-500 mt-1">Version <?= e((string) ($mikrotikSummary['version'] ?? '-')) ?> • <?= e((string) ($mikrotikSummary['uptime'] ?? '-')) ?></div>
+      <p class="text-sm text-emerald-700 fw-semibold">Konfigurasi tersimpan</p>
+      <div class="text-xs text-slate-500 mt-1">Agar dashboard tetap ringan, tes koneksi router sekarang dijalankan manual dari menu MikroTik API.</div>
     <?php endif; ?>
   </div>
 </div>
