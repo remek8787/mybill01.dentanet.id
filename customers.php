@@ -136,10 +136,15 @@ $customers = $pdo->query('SELECT c.*, p.name AS package_name, p.speed, p.mikroti
 $mikrotikProfiles = [];
 $mikrotikSecrets = [];
 $mikrotikError = '';
+$mikrotikSnapshotMeta = null;
 if (mikrotikIsConfigured()) {
     try {
-        $mikrotikProfiles = mikrotikFetchPppProfiles();
-        $mikrotikSecrets = mikrotikFetchPppSecrets();
+        $snapshot = mikrotikReadCachedSnapshot(3600);
+        if (is_array($snapshot)) {
+            $mikrotikProfiles = $snapshot['profiles'] ?? [];
+            $mikrotikSecrets = $snapshot['secrets'] ?? [];
+            $mikrotikSnapshotMeta = $snapshot;
+        }
     } catch (Throwable $e) {
         $mikrotikError = $e->getMessage();
     }
@@ -168,9 +173,13 @@ require __DIR__ . '/includes/header.php';
       <div class="rounded-3 border border-red-200 bg-red-50 p-3 small text-red-800 mb-3">
         Gagal ambil data MikroTik: <?= e($mikrotikError) ?>
       </div>
+    <?php elseif (!$mikrotikSnapshotMeta): ?>
+      <div class="rounded-3 border border-sky-200 bg-sky-50 p-3 small text-sky-800 mb-3">
+        Cache MikroTik belum tersedia. Buka menu <b>MikroTik API</b> lalu tekan <b>Refresh Cache</b> supaya daftar secret dan profile masuk tanpa bikin halaman ini berat.
+      </div>
     <?php else: ?>
       <div class="rounded-3 border border-emerald-200 bg-emerald-50 p-3 small text-emerald-800 mb-3">
-        Data MikroTik siap dipilih. Secret terbaca: <b><?= count($mikrotikSecrets) ?></b> • Profile terbaca: <b><?= count($mikrotikProfiles) ?></b>
+        Data MikroTik siap dipilih dari cache. Secret: <b><?= count($mikrotikSecrets) ?></b> • Profile: <b><?= count($mikrotikProfiles) ?></b> • Cache: <b><?= e((string) ($mikrotikSnapshotMeta['fetched_at'] ?? '-')) ?></b>
       </div>
     <?php endif; ?>
 

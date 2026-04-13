@@ -16,6 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Koneksi MikroTik berhasil ke router ' . ($info['identity'] ?? 'RouterOS') . '.');
         }
 
+        if ($action === 'refresh_cache') {
+            $snapshot = mikrotikFetchSnapshot(true, 0);
+            flash('success', 'Cache MikroTik berhasil diperbarui. Profile: ' . count($snapshot['profiles'] ?? []) . ', secret: ' . count($snapshot['secrets'] ?? []) . '.');
+        }
+
         if ($action === 'sync_customers') {
             $result = syncCustomersFromMikrotik($pdo);
             flash('success', 'Sinkron selesai. Customer diperbarui: ' . $result['updated'] . ', isolir: ' . $result['isolated'] . ', tidak ketemu: ' . $result['not_found'] . '.');
@@ -58,16 +63,17 @@ $mikrotikProfiles = [];
 $mikrotikSecrets = [];
 $mikrotikError = '';
 $disabledCount = 0;
+$cacheMeta = null;
 
 if (mikrotikIsConfigured()) {
     try {
-        $mikrotikInfo = mikrotikTestConnection();
-        $mikrotikProfiles = mikrotikFetchPppProfiles();
-        $mikrotikSecrets = mikrotikFetchPppSecrets();
-        foreach ($mikrotikSecrets as $secret) {
-            if (((string) ($secret['disabled'] ?? 'false')) === 'true') {
-                $disabledCount++;
-            }
+        $snapshot = mikrotikReadCachedSnapshot(3600);
+        if (is_array($snapshot)) {
+            $mikrotikInfo = $snapshot['info'] ?? null;
+            $mikrotikProfiles = $snapshot['profiles'] ?? [];
+            $mikrotikSecrets = $snapshot['secrets'] ?? [];
+            $disabledCount = (int) ($snapshot['disabled_count'] ?? 0);
+            $cacheMeta = $snapshot;
         }
     } catch (Throwable $e) {
         $mikrotikError = $e->getMessage();
@@ -89,6 +95,10 @@ require __DIR__ . '/includes/header.php';
         <button class="btn btn-outline-primary">Tes Koneksi</button>
       </form>
       <form method="post" class="d-inline">
+        <input type="hidden" name="action" value="refresh_cache">
+        <button class="btn btn-outline-secondary">Refresh Cache</button>
+      </form>
+      <form method="post" class="d-inline">
         <input type="hidden" name="action" value="sync_customers">
         <button class="btn btn-primary">Sinkron Pelanggan</button>
       </form>
@@ -102,6 +112,10 @@ require __DIR__ . '/includes/header.php';
   <?php elseif ($mikrotikError !== ''): ?>
     <div class="rounded-4 border border-red-200 bg-red-50 p-3 text-red-800 small">
       Gagal menghubungi MikroTik: <?= e($mikrotikError) ?>
+    </div>
+  <?php elseif (!$cacheMeta): ?>
+    <div class="rounded-4 border border-sky-200 bg-sky-50 p-3 text-sky-800 small">
+      Belum ada cache MikroTik. Tekan <b>Refresh Cache</b> untuk ambil data secret dan profile satu kali, lalu halaman lain akan memakai cache itu supaya lebih ringan.
     </div>
   <?php else: ?>
     <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -122,6 +136,7 @@ require __DIR__ . '/includes/header.php';
         <p class="text-xl font-bold text-red-600"><?= $disabledCount ?></p>
       </div>
     </div>
+    <div class="small text-secondary mt-3">Cache terakhir: <?= e((string) ($cacheMeta['fetched_at'] ?? '-')) ?>. Halaman ini sekarang tidak auto-nembak router setiap dibuka, supaya lebih ringan.</div>
   <?php endif; ?>
 </section>
 
@@ -149,7 +164,7 @@ require __DIR__ . '/includes/header.php';
   </div>
 </section>
 
-<?php if (mikrotikIsConfigured() && $mikrotikError === ''): ?>
+<?php if (mikrotikIsConfigured() && $mikrotikError === '' && $cacheMeta): ?>
   <section class="bg-white rounded-xl shadow p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h3 class="font-semibold mb-0">Daftar PPP Secret</h3>

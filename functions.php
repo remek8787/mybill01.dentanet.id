@@ -800,6 +800,87 @@ function normalizeMikrotikRows(array $rows): array
     return $normalized;
 }
 
+function mikrotikCachePath(): string
+{
+    $dir = __DIR__ . '/cache';
+    ensureDirectory($dir);
+    return $dir . '/mikrotik_snapshot.json';
+}
+
+function mikrotikReadCachedSnapshot(int $maxAgeSeconds = 600): ?array
+{
+    $path = mikrotikCachePath();
+    if (!is_file($path)) {
+        return null;
+    }
+
+    $raw = @file_get_contents($path);
+    if ($raw === false || trim($raw) === '') {
+        return null;
+    }
+
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        return null;
+    }
+
+    $fetchedAtTs = (int) ($data['fetched_at_ts'] ?? 0);
+    if ($maxAgeSeconds >= 0 && $fetchedAtTs > 0 && (time() - $fetchedAtTs) > $maxAgeSeconds) {
+        return null;
+    }
+
+    $data['cached'] = true;
+    return $data;
+}
+
+function mikrotikSaveSnapshot(array $snapshot): array
+{
+    $snapshot['fetched_at_ts'] = time();
+    $snapshot['fetched_at'] = date('Y-m-d H:i:s');
+    $snapshot['cached'] = false;
+    @file_put_contents(mikrotikCachePath(), json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    return $snapshot;
+}
+
+function mikrotikFetchSnapshot(bool $forceRefresh = false, int $maxAgeSeconds = 600): array
+{
+    if (!$forceRefresh) {
+        $cached = mikrotikReadCachedSnapshot($maxAgeSeconds);
+        if (is_array($cached)) {
+            return $cached;
+        }
+    }
+
+    $client = mikrotikClient();
+    $identity = normalizeMikrotikRows($client->comm('/system/identity/print', ['.proplist' => 'name']));
+    $resource = normalizeMikrotikRows($client->comm('/system/resource/print', ['.proplist' => 'version,board-name,uptime']));
+    $profiles = normalizeMikrotikRows($client->comm('/ppp/profile/print', ['.proplist' => '.id,name,rate-limit,only-one,local-address,remote-address']));
+    $secrets = normalizeMikrotikRows($client->comm('/ppp/secret/print', ['.proplist' => '.id,name,profile,service,disabled,comment,caller-id,last-logged-out,last-logged-in,remote-address']));
+    $client->disconnect();
+
+    usort($profiles, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
+    usort($secrets, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
+
+    $disabledCount = 0;
+    foreach ($secrets as $secret) {
+        if (((string) ($secret['disabled'] ?? 'false')) === 'true') {
+            $disabledCount++;
+        }
+    }
+
+    return mikrotikSaveSnapshot([
+        'info' => [
+            'identity' => $identity[0]['name'] ?? (mikrotikConfig()['router_name'] ?: 'MikroTik'),
+            'version' => $resource[0]['version'] ?? '-',
+            'board_name' => $resource[0]['board-name'] ?? '-',
+            'uptime' => $resource[0]['uptime'] ?? '-',
+        ],
+        'profiles' => $profiles,
+        'secrets' => $secrets,
+        'disabled_count' => $disabledCount,
+    ]);
+}
+
 function mikrotikTestConnection(): array
 {
     $client = mikrotikClient();
@@ -817,22 +898,14 @@ function mikrotikTestConnection(): array
 
 function mikrotikFetchPppProfiles(): array
 {
-    $client = mikrotikClient();
-    $profiles = normalizeMikrotikRows($client->comm('/ppp/profile/print', ['.proplist' => '.id,name,rate-limit,only-one,local-address,remote-address']));
-    $client->disconnect();
-
-    usort($profiles, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
-    return $profiles;
+    $snapshot = mikrotikFetchSnapshot(false);
+    return $snapshot['profiles'] ?? [];
 }
 
 function mikrotikFetchPppSecrets(): array
 {
-    $client = mikrotikClient();
-    $secrets = normalizeMikrotikRows($client->comm('/ppp/secret/print', ['.proplist' => '.id,name,profile,service,disabled,comment,caller-id,last-logged-out,last-logged-in,remote-address']));
-    $client->disconnect();
-
-    usort($secrets, static fn(array $a, array $b): int => strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? '')));
-    return $secrets;
+    $snapshot = mikrotikFetchSnapshot(false);
+    return $snapshot['secrets'] ?? [];
 }
 
 function mikrotikEnableSecret(string $secretId): void
@@ -840,6 +913,7 @@ function mikrotikEnableSecret(string $secretId): void
     $client = mikrotikClient();
     $client->comm('/ppp/secret/enable', ['.id' => $secretId]);
     $client->disconnect();
+    mikrotikFetchSnapshot(true, 0);
 }
 
 function mikrotikDisableSecret(string $secretId): void
@@ -847,6 +921,7 @@ function mikrotikDisableSecret(string $secretId): void
     $client = mikrotikClient();
     $client->comm('/ppp/secret/disable', ['.id' => $secretId]);
     $client->disconnect();
+    mikrotikFetchSnapshot(true, 0);
 }
 
 function mikrotikSetSecretProfile(string $secretId, string $profileName): void
@@ -854,11 +929,13 @@ function mikrotikSetSecretProfile(string $secretId, string $profileName): void
     $client = mikrotikClient();
     $client->comm('/ppp/secret/set', ['.id' => $secretId, 'profile' => $profileName]);
     $client->disconnect();
+    mikrotikFetchSnapshot(true, 0);
 }
 
 function syncCustomersFromMikrotik(PDO $pdo): array
 {
-    $secrets = mikrotikFetchPppSecrets();
+    $snapshot = mikrotikFetchSnapshot(true, 0);
+    $secrets = $snapshot['secrets'] ?? [];
     $byId = [];
     $byName = [];
     foreach ($secrets as $secret) {
