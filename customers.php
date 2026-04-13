@@ -133,20 +133,17 @@ $customers = $pdo->query('SELECT c.*, p.name AS package_name, p.speed, p.mikroti
     LEFT JOIN packages p ON p.id = c.package_id
     ORDER BY c.id DESC')->fetchAll();
 
-$mikrotikProfiles = [];
-$mikrotikSecrets = [];
-$mikrotikError = '';
-$mikrotikSnapshotMeta = null;
-if (mikrotikIsConfigured()) {
-    try {
-        $snapshot = mikrotikReadCachedSnapshot(3600);
-        if (is_array($snapshot)) {
-            $mikrotikProfiles = $snapshot['profiles'] ?? [];
-            $mikrotikSecrets = $snapshot['secrets'] ?? [];
-            $mikrotikSnapshotMeta = $snapshot;
-        }
-    } catch (Throwable $e) {
-        $mikrotikError = $e->getMessage();
+$activeCustomers = 0;
+$suspendedCustomers = 0;
+$inactiveCustomers = 0;
+foreach ($customers as $customerRow) {
+    $statusValue = (string) ($customerRow['status'] ?? 'active');
+    if ($statusValue === 'suspended') {
+        $suspendedCustomers++;
+    } elseif ($statusValue === 'inactive') {
+        $inactiveCustomers++;
+    } else {
+        $activeCustomers++;
     }
 }
 
@@ -156,7 +153,30 @@ require __DIR__ . '/includes/header.php';
 <section class="page-ornament page-ornament--gold mb-4">
   <div class="page-ornament-kicker"><i class="fa-solid fa-users-viewfinder me-2"></i>Manajemen Pelanggan</div>
   <h1 class="page-ornament-title">Pelanggan RT/RW Net</h1>
-  <p class="page-ornament-text">Input pelanggan, atur layanan, paket, dan wilayah dengan fokus ke billing inti yang ringan dan rapi.</p>
+  <p class="page-ornament-text">Input pelanggan, atur layanan, paket, dan wilayah dengan fokus ke billing inti yang ringan, cepat, dan mudah dibaca.</p>
+</section>
+
+<section class="isp-mini-grid mb-4">
+  <div class="isp-mini-card isp-mini-card--emerald">
+    <div class="isp-mini-card__label">Total Pelanggan</div>
+    <div class="isp-mini-card__value"><?= count($customers) ?></div>
+    <div class="isp-mini-card__note">Semua data pelanggan tersimpan</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--blue">
+    <div class="isp-mini-card__label">Pelanggan Aktif</div>
+    <div class="isp-mini-card__value"><?= $activeCustomers ?></div>
+    <div class="isp-mini-card__note">Siap dibuatkan billing</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--amber">
+    <div class="isp-mini-card__label">Suspend</div>
+    <div class="isp-mini-card__value"><?= $suspendedCustomers ?></div>
+    <div class="isp-mini-card__note">Perlu perhatian admin</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--slate">
+    <div class="isp-mini-card__label">Inactive</div>
+    <div class="isp-mini-card__value"><?= $inactiveCustomers ?></div>
+    <div class="isp-mini-card__note">Nonaktif sementara</div>
+  </div>
 </section>
 
 <div class="grid lg:grid-cols-3 gap-4">
@@ -165,7 +185,7 @@ require __DIR__ . '/includes/header.php';
       <h2 class="font-semibold mb-0"><?= $editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan RT/RW Net' ?></h2>
     </div>
     <div class="rounded-3 border border-sky-200 bg-sky-50 p-3 small text-sky-800 mb-3">
-      Fitur API disembunyikan sementara. Halaman ini fokus ke data pelanggan dan billing inti.
+      Halaman ini fokus ke data pelanggan, layanan, dan status billing tanpa beban integrasi tambahan.
     </div>
 
     <form method="post" class="space-y-3 luxe-form">
@@ -223,7 +243,7 @@ require __DIR__ . '/includes/header.php';
         </div>
         <div>
           <label class="text-sm">Catatan Layanan / Profil</label>
-          <input name="mikrotik_profile_name" id="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['mikrotik_profile_name'] ?? '')) ?>" placeholder="opsional, misal profile paket / catatan teknis">
+          <input name="mikrotik_profile_name" id="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['mikrotik_profile_name'] ?? '')) ?>" placeholder="opsional, misal paket rumahan / catatan teknis">
         </div>
       </div>
       <div class="grid md:grid-cols-3 gap-3">
@@ -264,7 +284,7 @@ require __DIR__ . '/includes/header.php';
   <section class="bg-white rounded-xl shadow p-4 lg:col-span-2 luxe-card luxe-card--table">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h2 class="font-semibold mb-0">Daftar Pelanggan</h2>
-      <div class="small text-secondary">Menampilkan data billing + referensi MikroTik + status isolir.</div>
+      <div class="small text-secondary">Menampilkan data pelanggan, layanan, dan status billing dengan layout yang lebih ringkas.</div>
     </div>
     <div class="overflow-auto table-wrap">
       <table class="min-w-full text-sm js-data-table table-soft" data-page-size="10">
@@ -272,7 +292,7 @@ require __DIR__ . '/includes/header.php';
           <tr class="text-left border-b">
             <th class="py-2 pr-3">Pelanggan</th>
             <th class="py-2 pr-3">Paket / Layanan</th>
-            <th class="py-2 pr-3">MikroTik</th>
+            <th class="py-2 pr-3">Layanan</th>
             <th class="py-2 pr-3">Status</th>
             <th class="py-2 pr-3">Aksi</th>
           </tr>
@@ -292,10 +312,10 @@ require __DIR__ . '/includes/header.php';
                 <div class="text-xs text-slate-500">Due day: <?= (int) ($customer['due_day'] ?? 10) ?> • API ID: <?= e((string) ($customer['api_customer_id'] ?: '-')) ?></div>
               </td>
               <td class="py-2 pr-3">
-                <div>Secret/User: <?= e((string) ($customer['service_username'] ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Profile: <?= e((string) (($customer['mikrotik_profile_name'] ?: $customer['package_mikrotik_profile']) ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Router: <?= e((string) ($customer['router_name'] ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Sync: <?= e(mikrotikSyncLabel((string) ($customer['mikrotik_last_status'] ?? ''))) ?></div>
+                <div>ID/User: <?= e((string) ($customer['service_username'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Catatan layanan: <?= e((string) (($customer['mikrotik_profile_name'] ?: $customer['package_mikrotik_profile']) ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Lokasi / Router: <?= e((string) ($customer['router_name'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Referensi: <?= e((string) ($customer['api_customer_id'] ?: '-')) ?></div>
               </td>
               <td class="py-2 pr-3">
                 <div class="mb-1"><span class="badge <?= ($customer['status'] ?? '') === 'active' ? 'text-bg-success' : (($customer['status'] ?? '') === 'suspended' ? 'text-bg-warning' : 'text-bg-secondary') ?>"><?= e(customerStatusLabel((string) $customer['status'])) ?></span></div>

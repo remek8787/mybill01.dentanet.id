@@ -2678,8 +2678,71 @@ body[data-theme="dark"] .luxe-card .js-table-tools {
   line-height: 1.65;
 }
 
+.isp-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.isp-mini-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1rem 1rem 0.9rem;
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+}
+
+.isp-mini-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(255, 255, 255, 0.18) 0, rgba(255, 255, 255, 0.18) 7px, transparent 7px),
+    linear-gradient(45deg, transparent 42%, rgba(255, 255, 255, 0.14) 43%, rgba(255, 255, 255, 0.14) 57%, transparent 58%);
+  background-size: 90px 90px, 145px 145px;
+}
+
+.isp-mini-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.isp-mini-card__label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+
+.isp-mini-card__value {
+  margin-top: 0.45rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.isp-mini-card__note {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  opacity: 0.92;
+}
+
+.isp-mini-card--emerald { background: linear-gradient(180deg, #10b981, #059669); }
+.isp-mini-card--blue { background: linear-gradient(180deg, #3b82f6, #2563eb); }
+.isp-mini-card--amber { background: linear-gradient(180deg, #f59e0b, #d97706); }
+.isp-mini-card--red { background: linear-gradient(180deg, #ef4444, #dc2626); }
+.isp-mini-card--violet { background: linear-gradient(180deg, #8b5cf6, #7c3aed); }
+.isp-mini-card--slate { background: linear-gradient(180deg, #475569, #334155); }
+
 @media (max-width: 1200px) {
   .isp-tile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .isp-mini-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2692,6 +2755,10 @@ body[data-theme="dark"] .luxe-card .js-table-tools {
 
 @media (max-width: 640px) {
   .isp-tile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .isp-mini-grid {
     grid-template-columns: 1fr;
   }
 

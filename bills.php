@@ -90,6 +90,12 @@ foreach ($bills as $bill) {
     }
 }
 $unpaidCustomerCount = count($unpaidCustomerIds);
+$paidInvoiceCount = 0;
+foreach ($bills as $billRow) {
+    if ((string) ($billRow['status'] ?? '') === 'paid') {
+        $paidInvoiceCount++;
+    }
+}
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -98,6 +104,29 @@ require __DIR__ . '/includes/header.php';
   <div class="page-ornament-kicker"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Pusat Invoice</div>
   <h1 class="page-ornament-title">Invoice dan Pembayaran</h1>
   <p class="page-ornament-text">Filter tagihan, monitor piutang, dan proses pembayaran dalam tampilan elegan dengan sentuhan batik emas.</p>
+</section>
+
+<section class="isp-mini-grid mb-4">
+  <div class="isp-mini-card isp-mini-card--red">
+    <div class="isp-mini-card__label">Invoice Belum Lunas</div>
+    <div class="isp-mini-card__value"><?= $unpaidCount ?></div>
+    <div class="isp-mini-card__note">Fokus follow up piutang</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--blue">
+    <div class="isp-mini-card__label">Invoice Lunas</div>
+    <div class="isp-mini-card__value"><?= $paidInvoiceCount ?></div>
+    <div class="isp-mini-card__note">Sudah berhasil ditagihkan</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--amber">
+    <div class="isp-mini-card__label">Pelanggan Menunggak</div>
+    <div class="isp-mini-card__value"><?= $unpaidCustomerCount ?></div>
+    <div class="isp-mini-card__note">Perlu pengingat pembayaran</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--emerald">
+    <div class="isp-mini-card__label">Total Piutang</div>
+    <div class="isp-mini-card__value"><?= e(rupiah($totalUnpaid)) ?></div>
+    <div class="isp-mini-card__note">Akumulasi filter saat ini</div>
+  </div>
 </section>
 
 <section class="bg-white rounded-xl shadow p-4 mb-4 luxe-card luxe-card--table">

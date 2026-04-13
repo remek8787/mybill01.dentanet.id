@@ -81,6 +81,15 @@ if ($editId > 0) {
 }
 
 $packages = $pdo->query('SELECT * FROM packages ORDER BY is_active DESC, id DESC')->fetchAll();
+$activePackageCount = 0;
+$inactivePackageCount = 0;
+foreach ($packages as $packageRow) {
+    if ((int) ($packageRow['is_active'] ?? 0) === 1) {
+        $activePackageCount++;
+    } else {
+        $inactivePackageCount++;
+    }
+}
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -89,6 +98,24 @@ require __DIR__ . '/includes/header.php';
   <div class="page-ornament-kicker"><i class="fa-solid fa-box-open me-2"></i>Master Paket</div>
   <h1 class="page-ornament-title">Kelola Paket Internet</h1>
   <p class="page-ornament-text">Atur paket, harga, speed, dan mapping profile MikroTik dengan layout yang lebih premium dan berkarakter.</p>
+</section>
+
+<section class="isp-mini-grid mb-4">
+  <div class="isp-mini-card isp-mini-card--violet">
+    <div class="isp-mini-card__label">Total Paket</div>
+    <div class="isp-mini-card__value"><?= count($packages) ?></div>
+    <div class="isp-mini-card__note">Seluruh paket tersimpan</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--emerald">
+    <div class="isp-mini-card__label">Paket Aktif</div>
+    <div class="isp-mini-card__value"><?= $activePackageCount ?></div>
+    <div class="isp-mini-card__note">Siap dipakai untuk billing</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--slate">
+    <div class="isp-mini-card__label">Paket Nonaktif</div>
+    <div class="isp-mini-card__value"><?= $inactivePackageCount ?></div>
+    <div class="isp-mini-card__note">Arsip atau paket lama</div>
+  </div>
 </section>
 
 <div class="grid lg:grid-cols-3 gap-4">
