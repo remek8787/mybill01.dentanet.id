@@ -38,6 +38,14 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
     </div>
 
     <?php if ($user): ?>
+      <div class="sidebar-user-card mb-4">
+        <div class="sidebar-user-card__avatar"><i class="fa-solid fa-user"></i></div>
+        <div class="sidebar-user-card__body">
+          <div class="sidebar-user-card__name"><?= e((string) $user['full_name']) ?></div>
+          <div class="sidebar-user-card__role"><?= e(displayRoleLabel($user)) ?></div>
+        </div>
+      </div>
+
       <nav class="side-nav">
         <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</a>
         <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="fa-solid fa-users-viewfinder me-2"></i>Pelanggan</a>
