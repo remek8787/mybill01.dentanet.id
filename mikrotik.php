@@ -29,16 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'enable_secret') {
             $secretId = trim((string) ($_POST['secret_id'] ?? ''));
             if ($secretId !== '') {
-                mikrotikEnableSecret($secretId);
-                flash('success', 'Secret berhasil di-enable.');
+                $kicked = mikrotikEnableSecretAndKick($secretId);
+                flash('success', 'Secret berhasil di-enable. Active session yang dikick: ' . $kicked . '.');
             }
         }
 
         if ($action === 'disable_secret') {
             $secretId = trim((string) ($_POST['secret_id'] ?? ''));
             if ($secretId !== '') {
-                mikrotikDisableSecret($secretId);
-                flash('success', 'Secret berhasil di-disable / isolir.');
+                $kicked = mikrotikDisableSecretAndKick($secretId);
+                flash('success', 'Secret berhasil di-disable / isolir. Active session yang dikick: ' . $kicked . '.');
             }
         }
 
@@ -46,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $secretId = trim((string) ($_POST['secret_id'] ?? ''));
             $profileName = trim((string) ($_POST['profile_name'] ?? ''));
             if ($secretId !== '' && $profileName !== '') {
-                mikrotikSetSecretProfile($secretId, $profileName);
-                flash('success', 'Profile secret berhasil dipindah ke ' . $profileName . '.');
+                $kicked = mikrotikSetSecretProfileAndKick($secretId, $profileName);
+                flash('success', 'Profile secret berhasil dipindah ke ' . $profileName . '. Active session yang dikick: ' . $kicked . '.');
             }
         }
     } catch (Throwable $e) {

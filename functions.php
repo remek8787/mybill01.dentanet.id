@@ -932,6 +932,82 @@ function mikrotikSetSecretProfile(string $secretId, string $profileName): void
     mikrotikFetchSnapshot(true, 0);
 }
 
+function mikrotikSecretNameById(string $secretId): string
+{
+    $secretId = trim($secretId);
+    if ($secretId === '') {
+        return '';
+    }
+
+    $snapshot = mikrotikReadCachedSnapshot(86400);
+    if (is_array($snapshot)) {
+        foreach (($snapshot['secrets'] ?? []) as $secret) {
+            if ((string) ($secret['id'] ?? '') === $secretId) {
+                return (string) ($secret['name'] ?? '');
+            }
+        }
+    }
+
+    return '';
+}
+
+function mikrotikKickActiveSessionsBySecretId(string $secretId): int
+{
+    $username = mikrotikSecretNameById($secretId);
+    if ($username === '') {
+        return 0;
+    }
+
+    $client = mikrotikClient();
+    $activeRows = normalizeMikrotikRows($client->comm('/ppp/active/print', [
+        '?name' => $username,
+        '.proplist' => '.id,name,service,address,caller-id',
+    ]));
+
+    $kicked = 0;
+    foreach ($activeRows as $row) {
+        $activeId = trim((string) ($row['id'] ?? ''));
+        if ($activeId === '') {
+            continue;
+        }
+        $client->comm('/ppp/active/remove', ['.id' => $activeId]);
+        $kicked++;
+    }
+
+    $client->disconnect();
+    return $kicked;
+}
+
+function mikrotikEnableSecretAndKick(string $secretId): int
+{
+    $client = mikrotikClient();
+    $client->comm('/ppp/secret/enable', ['.id' => $secretId]);
+    $client->disconnect();
+    $kicked = mikrotikKickActiveSessionsBySecretId($secretId);
+    mikrotikFetchSnapshot(true, 0);
+    return $kicked;
+}
+
+function mikrotikDisableSecretAndKick(string $secretId): int
+{
+    $client = mikrotikClient();
+    $client->comm('/ppp/secret/disable', ['.id' => $secretId]);
+    $client->disconnect();
+    $kicked = mikrotikKickActiveSessionsBySecretId($secretId);
+    mikrotikFetchSnapshot(true, 0);
+    return $kicked;
+}
+
+function mikrotikSetSecretProfileAndKick(string $secretId, string $profileName): int
+{
+    $client = mikrotikClient();
+    $client->comm('/ppp/secret/set', ['.id' => $secretId, 'profile' => $profileName]);
+    $client->disconnect();
+    $kicked = mikrotikKickActiveSessionsBySecretId($secretId);
+    mikrotikFetchSnapshot(true, 0);
+    return $kicked;
+}
+
 function syncCustomersFromMikrotik(PDO $pdo): array
 {
     $snapshot = mikrotikFetchSnapshot(true, 0);
