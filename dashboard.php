@@ -41,6 +41,15 @@ $recentInvoices = $pdo->query('SELECT i.*, c.full_name AS customer_name, c.area,
     LEFT JOIN packages p ON p.id = i.package_id
     ORDER BY i.id DESC LIMIT 10')->fetchAll();
 
+$reactDashboardProps = [
+    'monthLabel' => periodLabel($currentMonth, $currentYear),
+    'customerCount' => $customerCount,
+    'unpaidCustomerCount' => $unpaidCustomerCount,
+    'isolatedCount' => $isolatedCount,
+    'unpaidTotal' => rupiah($unpaidTotal),
+    'routerStatus' => !$mikrotikReady ? 'Belum disetting' : ($mikrotikError !== '' ? 'Koneksi bermasalah' : ((string) ($mikrotikSummary['identity'] ?? 'Router aktif'))),
+];
+
 require __DIR__ . '/includes/header.php';
 ?>
 
@@ -68,6 +77,10 @@ require __DIR__ . '/includes/header.php';
       </a>
     </div>
   </div>
+</section>
+
+<section class="mb-4">
+  <div id="dashboardReactOrnament" data-props='<?= e(json_encode($reactDashboardProps, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>'></div>
 </section>
 
 <section class="grid lg:grid-cols-2 gap-4 mb-4">
@@ -206,6 +219,107 @@ require __DIR__ . '/includes/header.php';
     </table>
   </div>
 </div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+(() => {
+  const mount = document.getElementById('dashboardReactOrnament');
+  if (!mount || !window.React || !window.ReactDOM) {
+    return;
+  }
+
+  let props = {};
+  try {
+    props = JSON.parse(mount.dataset.props || '{}');
+  } catch (error) {
+    props = {};
+  }
+
+  const e = React.createElement;
+
+  const StatChip = ({ icon, label, value, ring }) => e(
+    'div',
+    {
+      className: 'rounded-3xl border border-white/50 bg-white/80 backdrop-blur-md px-4 py-3 shadow-lg'
+    },
+    e('div', { className: 'flex items-center gap-3' },
+      e('div', { className: 'h-11 w-11 rounded-2xl flex items-center justify-center text-white shadow-md ' + ring },
+        e('i', { className: icon })
+      ),
+      e('div', null,
+        e('div', { className: 'text-xs uppercase tracking-[0.18em] text-slate-500 font-bold' }, label),
+        e('div', { className: 'text-lg font-black text-slate-800' }, value)
+      )
+    )
+  );
+
+  const ActionLink = ({ href, icon, title, text, tone }) => e(
+    'a',
+    {
+      href,
+      className: 'group rounded-[1.4rem] border border-white/50 bg-white/80 p-4 shadow-lg transition hover:-translate-y-1 hover:shadow-xl backdrop-blur-md ' + tone
+    },
+    e('div', { className: 'flex items-start justify-between gap-3' },
+      e('div', null,
+        e('div', { className: 'text-sm font-black text-slate-800' }, title),
+        e('div', { className: 'mt-1 text-xs leading-6 text-slate-500' }, text)
+      ),
+      e('div', { className: 'h-11 w-11 rounded-2xl flex items-center justify-center text-white shadow-md ' + tone.replace('text-slate-800','') },
+        e('i', { className: icon })
+      )
+    )
+  );
+
+  const DashboardDecor = () => e(
+    'div',
+    { className: 'relative overflow-hidden rounded-[2rem] border border-white/50 bg-gradient-to-br from-sky-100 via-fuchsia-50 to-amber-50 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.10)]' },
+    e('div', { className: 'absolute -right-12 -top-12 h-36 w-36 rounded-full bg-fuchsia-300/30 blur-3xl' }),
+    e('div', { className: 'absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-sky-300/30 blur-3xl' }),
+    e('div', { className: 'relative grid gap-4 xl:grid-cols-[1.2fr_0.8fr]' },
+      e('div', { className: 'rounded-[1.6rem] border border-white/50 bg-slate-900 px-5 py-5 text-white shadow-xl' },
+        e('div', { className: 'inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-200' },
+          e('i', { className: 'fa-solid fa-wand-magic-sparkles' }),
+          ' React + Tailwind Ornament'
+        ),
+        e('h3', { className: 'mt-3 text-2xl font-black leading-tight' }, 'Dashboard dibuat lebih hidup tanpa build berat'),
+        e('p', { className: 'mt-2 max-w-2xl text-sm leading-7 text-slate-300' }, 'Saya pakai React island ringan di atas layout PHP yang sudah ada, jadi tetap aman untuk hosting sekarang tapi terasa lebih modern dan interaktif.'),
+        e('div', { className: 'mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4' },
+          e(StatChip, { icon: 'fa-solid fa-users', label: 'Pelanggan', value: String(props.customerCount || 0), ring: 'bg-gradient-to-br from-sky-500 to-cyan-400' }),
+          e(StatChip, { icon: 'fa-solid fa-file-invoice-dollar', label: 'Belum Bayar', value: String(props.unpaidCustomerCount || 0), ring: 'bg-gradient-to-br from-amber-500 to-orange-400' }),
+          e(StatChip, { icon: 'fa-solid fa-user-lock', label: 'Diisolir', value: String(props.isolatedCount || 0), ring: 'bg-gradient-to-br from-rose-500 to-pink-500' }),
+          e(StatChip, { icon: 'fa-solid fa-wallet', label: 'Piutang', value: String(props.unpaidTotal || '-'), ring: 'bg-gradient-to-br from-violet-500 to-fuchsia-500' })
+        )
+      ),
+      e('div', { className: 'grid gap-3' },
+        e(ActionLink, {
+          href: 'customers.php',
+          icon: 'fa-solid fa-users-viewfinder',
+          title: 'Kelola pelanggan',
+          text: 'Tambah, edit, dan cocokan secret PPPoE dengan data billing.',
+          tone: 'hover:bg-sky-50'
+        }),
+        e(ActionLink, {
+          href: 'mikrotik.php',
+          icon: 'fa-solid fa-network-wired',
+          title: 'Pantau router',
+          text: 'Status sekarang: ' + (props.routerStatus || '-'),
+          tone: 'hover:bg-fuchsia-50'
+        }),
+        e(ActionLink, {
+          href: 'bills.php?status=unpaid',
+          icon: 'fa-solid fa-bell-concierge',
+          title: 'Tagihan ' + (props.monthLabel || 'bulan ini'),
+          text: 'Lanjut cek invoice belum lunas dan follow up penagihan.',
+          tone: 'hover:bg-amber-50'
+        })
+      )
+    )
+  );
+
+  ReactDOM.createRoot(mount).render(e(DashboardDecor));
+})();
+</script>
 
 <div class="modal fade" id="tutorialModal" tabindex="-1" aria-labelledby="tutorialModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
