@@ -42,7 +42,6 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
         <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</a>
         <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="fa-solid fa-users-viewfinder me-2"></i>Pelanggan</a>
         <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="fa-solid fa-box-open me-2"></i>Paket</a>
-        <a class="side-link <?= $currentPage === 'mikrotik.php' ? 'active' : '' ?>" href="mikrotik.php"><i class="fa-solid fa-network-wired me-2"></i>MikroTik API</a>
         <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="fa-solid fa-file-circle-plus me-2"></i>Generate Billing</a>
         <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoice</a>
         <?php if (($user['role'] ?? '') === 'admin'): ?>

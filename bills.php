@@ -103,7 +103,7 @@ require __DIR__ . '/includes/header.php';
 <section class="bg-white rounded-xl shadow p-4 mb-4 luxe-card luxe-card--table">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <h2 class="font-semibold mb-0">Daftar Invoice RT/RW Net</h2>
-    <div class="small text-secondary">Filter pelanggan belum bayar per bulan, lalu lanjut cetak atau isolir dari menu MikroTik API.</div>
+    <div class="small text-secondary">Filter pelanggan belum bayar per bulan, lalu lanjut cetak dan proses pembayaran.</div>
   </div>
   <form class="grid md:grid-cols-5 gap-2 text-sm">
     <select name="status" class="border rounded px-3 py-2">
@@ -129,7 +129,7 @@ require __DIR__ . '/includes/header.php';
     <div class="info-card"><div class="info-label">Total Invoice</div><div class="info-value"><?= count($bills) ?></div></div>
     <div class="info-card"><div class="info-label">Pelanggan Belum Bayar</div><div class="info-value text-amber-600"><?= $unpaidCustomerCount ?></div></div>
     <div class="info-card"><div class="info-label">Total Piutang Filter</div><div class="info-value text-amber-600"><?= e(rupiah($totalUnpaid)) ?></div></div>
-    <div class="info-card"><div class="info-label">Provider API</div><div class="info-note"><?= e(appSettingText('api_provider', 'MikroTik RouterOS / Custom API')) ?></div></div>
+    <div class="info-card"><div class="info-label">Status App</div><div class="info-note">Billing inti aktif</div></div>
   </div>
 </section>
 
@@ -161,8 +161,8 @@ require __DIR__ . '/includes/header.php';
             </td>
             <td class="py-2 pr-3">
               <div><?= e(packageLabel($bill)) ?></div>
-              <div class="text-xs text-slate-500">PPPoE: <?= e((string) ($bill['service_username'] ?: '-')) ?></div>
-              <div class="text-xs text-slate-500">Profile: <?= e((string) ($bill['mikrotik_profile_name'] ?: '-')) ?></div>
+              <div class="text-xs text-slate-500">Layanan: <?= e((string) ($bill['service_username'] ?: '-')) ?></div>
+              <div class="text-xs text-slate-500">Catatan: <?= e((string) ($bill['mikrotik_profile_name'] ?: '-')) ?></div>
             </td>
             <td class="py-2 pr-3"><?= e(periodLabel((int) $bill['period_month'], (int) $bill['period_year'])) ?></td>
             <td class="py-2 pr-3">
@@ -173,14 +173,13 @@ require __DIR__ . '/includes/header.php';
             <td class="py-2 pr-3">
               <span class="badge <?= ($bill['status'] ?? '') === 'paid' ? 'text-bg-success' : 'text-bg-warning' ?>"><?= ($bill['status'] ?? '') === 'paid' ? 'Lunas' : 'Belum Lunas' ?></span>
               <div class="text-xs text-slate-500 mt-1">Bayar: <?= e(formatDateId((string) ($bill['paid_at'] ?? ''), '-')) ?></div>
-              <div class="text-xs mt-1"><span class="badge <?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'text-bg-danger' : 'text-bg-success' ?>"><?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'Sedang diisolir' : 'Tidak diisolir' ?></span></div>
+              <div class="text-xs mt-1"><span class="badge <?= (($bill['status'] ?? '') === 'suspended') ? 'text-bg-danger' : 'text-bg-success' ?>"><?= (($bill['status'] ?? '') === 'suspended') ? 'Suspend' : 'Normal' ?></span></div>
             </td>
             <td class="py-2 pr-3">
               <a class="btn btn-sm btn-outline-secondary inline-block mb-1" href="bill_print.php?id=<?= (int) $bill['id'] ?>" target="_blank"><i class="fa-solid fa-print me-1"></i>Cetak Invoice</a>
               <?php if (($bill['status'] ?? '') === 'paid'): ?>
                 <a class="btn btn-sm btn-outline-primary inline-block mb-1" href="receipt.php?id=<?= (int) $bill['id'] ?>" target="_blank"><i class="fa-solid fa-receipt me-1"></i>Kwitansi</a>
               <?php endif; ?>
-              <a class="btn btn-sm btn-outline-primary inline-block mb-1" href="mikrotik.php"><i class="fa-solid fa-network-wired me-1"></i>MikroTik API</a>
 
               <?php if (($bill['status'] ?? '') === 'unpaid'): ?>
                 <form method="post" class="space-y-1 mt-2">

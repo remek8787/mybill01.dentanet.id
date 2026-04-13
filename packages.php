@@ -110,13 +110,13 @@ require __DIR__ . '/includes/header.php';
         <input name="price" type="number" min="0" required class="mt-1 w-full border rounded px-3 py-2" value="<?= (int) ($editPackage['price'] ?? 0) ?>">
       </div>
       <div>
-        <label class="text-sm">Mapping Profile MikroTik</label>
-        <input name="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['mikrotik_profile_name'] ?? '')) ?>" placeholder="contoh: pppoe-10mb">
-        <div class="text-xs text-slate-500 mt-1">Opsional, dipakai sebagai profile default saat pilih paket pelanggan.</div>
+        <label class="text-sm">Label Paket / Kode Internal</label>
+        <input name="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['mikrotik_profile_name'] ?? '')) ?>" placeholder="opsional, misal GOLD-20MB">
+        <div class="text-xs text-slate-500 mt-1">Opsional untuk catatan internal paket.</div>
       </div>
       <div>
-        <label class="text-sm">API Plan ID</label>
-        <input name="api_plan_id" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['api_plan_id'] ?? '')) ?>" placeholder="opsional untuk mapping ke API lain">
+        <label class="text-sm">Kode Paket</label>
+        <input name="api_plan_id" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editPackage['api_plan_id'] ?? '')) ?>" placeholder="opsional, misal PKT-001">
       </div>
       <div>
         <label class="text-sm">Deskripsi</label>
@@ -135,7 +135,7 @@ require __DIR__ . '/includes/header.php';
   <section class="bg-white rounded-xl shadow p-4 lg:col-span-2 luxe-card luxe-card--table">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h2 class="font-semibold mb-0">Daftar Paket</h2>
-      <div class="small text-secondary">Tambahkan mapping profile agar admin lebih cepat saat input pelanggan.</div>
+      <div class="small text-secondary">Fokus ke nama paket, speed, harga, dan catatan internal.</div>
     </div>
     <div class="overflow-auto">
       <table class="min-w-full text-sm js-data-table table-soft" data-page-size="10">
@@ -144,8 +144,8 @@ require __DIR__ . '/includes/header.php';
             <th class="py-2 pr-3">Nama</th>
             <th class="py-2 pr-3">Speed</th>
             <th class="py-2 pr-3">Harga</th>
-            <th class="py-2 pr-3">Profile MikroTik</th>
-            <th class="py-2 pr-3">API ID</th>
+            <th class="py-2 pr-3">Label Internal</th>
+            <th class="py-2 pr-3">Kode Paket</th>
             <th class="py-2 pr-3">Status</th>
             <th class="py-2 pr-3">Aksi</th>
           </tr>

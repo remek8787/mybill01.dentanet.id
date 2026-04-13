@@ -96,10 +96,10 @@ $barcode = barcodeSvg($invoiceNo, 78);
       </table>
       <table>
         <tr><td>Paket</td><td><?= e(packageLabel($invoice)) ?></td></tr>
-        <tr><td>Username PPPoE</td><td><?= e((string) ($invoice['service_username'] ?: '-')) ?></td></tr>
-        <tr><td>Profile MikroTik</td><td><?= e((string) ($invoice['mikrotik_profile_name'] ?: '-')) ?></td></tr>
-        <tr><td>Router</td><td><?= e((string) ($invoice['router_name'] ?: appSettingText('mikrotik_router_name', '-'))) ?></td></tr>
-        <tr><td>Provider</td><td><?= e(appSettingText('api_provider', '-')) ?></td></tr>
+        <tr><td>ID Layanan</td><td><?= e((string) ($invoice['service_username'] ?: '-')) ?></td></tr>
+        <tr><td>Catatan Layanan</td><td><?= e((string) ($invoice['mikrotik_profile_name'] ?: '-')) ?></td></tr>
+        <tr><td>Lokasi / Router</td><td><?= e((string) ($invoice['router_name'] ?: '-')) ?></td></tr>
+        <tr><td>Referensi</td><td><?= e((string) ($invoice['api_customer_id'] ?: '-')) ?></td></tr>
       </table>
     </div>
 

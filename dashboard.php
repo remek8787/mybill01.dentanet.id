@@ -21,13 +21,7 @@ $stmtUnpaidCustomerCount = $pdo->prepare("SELECT COUNT(DISTINCT customer_id) FRO
 $stmtUnpaidCustomerCount->execute([':month' => $currentMonth, ':year' => $currentYear]);
 $unpaidCustomerCount = (int) $stmtUnpaidCustomerCount->fetchColumn();
 
-$isolatedCount = (int) $pdo->query("SELECT COUNT(*) FROM customers WHERE isolated = 1 OR status = 'suspended'")->fetchColumn();
-$mikrotikReady = mikrotikIsConfigured();
-$mikrotikSummary = null;
-$mikrotikError = '';
-$mikrotikStatusText = !$mikrotikReady
-    ? 'Belum dikonfigurasi'
-    : 'Siap dipakai, tes manual dari menu MikroTik API';
+$isolatedCount = (int) $pdo->query("SELECT COUNT(*) FROM customers WHERE status = 'suspended'")->fetchColumn();
 
 $recentInvoices = $pdo->query('SELECT i.*, c.full_name AS customer_name, c.area, c.service_username, c.mikrotik_profile_name,
         p.name AS package_name, p.speed
@@ -42,7 +36,7 @@ $reactDashboardProps = [
     'unpaidCustomerCount' => $unpaidCustomerCount,
     'isolatedCount' => $isolatedCount,
     'unpaidTotal' => rupiah($unpaidTotal),
-    'routerStatus' => $mikrotikStatusText,
+    'routerStatus' => 'Billing inti aktif',
 ];
 
 require __DIR__ . '/includes/header.php';
@@ -64,9 +58,6 @@ require __DIR__ . '/includes/header.php';
       <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tutorialModal">
         <i class="bi bi-journal-text me-2"></i>Tutorial
       </button>
-      <a href="mikrotik.php" class="btn btn-outline-primary">
-        <i class="bi bi-hdd-network me-2"></i>MikroTik API
-      </a>
       <a href="readings.php" class="btn btn-outline-secondary">
         <i class="bi bi-calendar2-check me-2"></i>Generate Billing
       </a>
@@ -88,8 +79,8 @@ require __DIR__ . '/includes/header.php';
       <span class="dashboard-update-badge">V1+</span>
     </div>
     <ul class="dashboard-bullet-list">
-      <li>Data pelanggan RT/RW Net lengkap dengan username PPPoE / secret MikroTik</li>
-      <li>Kontrol koneksi MikroTik API, port custom, enable/disable secret, pindah profile</li>
+      <li>Data pelanggan RT/RW Net lengkap dan siap dipakai untuk billing harian</li>
+      <li>Generate invoice bulanan, pembayaran, cetak invoice, dan monitoring status pelanggan</li>
       <li>Generate invoice bulanan, filter pelanggan belum bayar per bulan, dan hitung isolir</li>
       <li>Cetak invoice dengan barcode nomor invoice</li>
       <li>Panel tutorial supaya admin tidak bingung saat onboarding</li>
@@ -104,11 +95,10 @@ require __DIR__ . '/includes/header.php';
       </div>
     </div>
     <ol class="dashboard-inline-steps">
-      <li><b>Pengaturan</b> → isi host, port API, username, password MikroTik</li>
-      <li><b>MikroTik API</b> → tes koneksi dan sinkron data secret / profile</li>
-      <li><b>Pelanggan</b> → pilih secret PPPoE, profile, paket, dan identitas pelanggan</li>
+      <li><b>Pelanggan</b> → isi identitas pelanggan, layanan, paket, dan area</li>
+      <li><b>Paket</b> → siapkan nama paket, speed, dan harga bulanan</li>
       <li><b>Generate Billing</b> → buat invoice bulan berjalan</li>
-      <li><b>Invoice</b> → filter yang belum bayar, print invoice, lalu isolir bila perlu</li>
+      <li><b>Invoice</b> → filter yang belum bayar, print invoice, dan tandai lunas</li>
     </ol>
   </div>
 </section>
@@ -136,14 +126,9 @@ require __DIR__ . '/includes/header.php';
     <div class="text-xs text-slate-500 mt-1">Sudah dibayar: <?= e(rupiah($paidTotal)) ?></div>
   </div>
   <div class="stat-card stat-card--indigo p-4">
-    <p class="text-sm text-slate-500">MikroTik API</p>
-    <?php if (!$mikrotikReady): ?>
-      <p class="text-sm text-amber-700 fw-semibold">Belum dikonfigurasi</p>
-      <div class="text-xs text-slate-500 mt-1">Isi host, port, username, dan password di Pengaturan.</div>
-    <?php else: ?>
-      <p class="text-sm text-emerald-700 fw-semibold">Konfigurasi tersimpan</p>
-      <div class="text-xs text-slate-500 mt-1">Agar dashboard tetap ringan, tes koneksi router sekarang dijalankan manual dari menu MikroTik API.</div>
-    <?php endif; ?>
+    <p class="text-sm text-slate-500">Mode Aplikasi</p>
+    <p class="text-sm text-emerald-700 fw-semibold">Billing inti aktif</p>
+    <div class="text-xs text-slate-500 mt-1">Fitur API disembunyikan sementara supaya app lebih ringan dan fokus ke billing.</div>
   </div>
 </div>
 
@@ -157,16 +142,16 @@ require __DIR__ . '/includes/header.php';
       <div class="fw-semibold mb-2">Fokus bulan ini</div>
       <ul class="mb-0 small text-secondary ps-3">
         <li>Follow up pelanggan yang belum bayar untuk periode <?= e(periodLabel($currentMonth, $currentYear)) ?>.</li>
-        <li>Gunakan menu MikroTik API untuk isolir / buka isolir dari secret PPPoE.</li>
+        <li>Fokus dulu ke pelanggan aktif, invoice, dan penagihan bulan berjalan.</li>
         <li>Cetak invoice barcode dari menu Invoice saat penagihan lapangan.</li>
       </ul>
     </div>
     <div class="rounded-4 border p-3 bg-light soft-panel soft-panel--violet">
       <div class="fw-semibold mb-2">Catatan implementasi awal</div>
       <ul class="mb-0 small text-secondary ps-3">
-        <li>Sinkron status isolir memakai status disabled pada PPP secret MikroTik.</li>
-        <li>Profile pelanggan bisa diisi manual atau mengikuti hasil sinkron dari router.</li>
-        <li>Struktur ini sudah siap untuk kita improve ke auto isolir dan reminder WA berikutnya.</li>
+        <li>Fitur API sedang disembunyikan sementara untuk menjaga performa app tetap ringan.</li>
+        <li>Struktur billing inti tetap aman untuk pelanggan, paket, invoice, dan pembayaran.</li>
+        <li>Nanti API bisa dinyalakan lagi setelah alur paling efisiennya diputuskan.</li>
       </ul>
     </div>
   </div>

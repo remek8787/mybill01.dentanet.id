@@ -93,16 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$mikrotikInfo = null;
-$mikrotikError = '';
-if (mikrotikIsConfigured()) {
-    try {
-        $mikrotikInfo = mikrotikTestConnection();
-    } catch (Throwable $e) {
-        $mikrotikError = $e->getMessage();
-    }
-}
-
 require __DIR__ . '/includes/header.php';
 ?>
 
@@ -149,20 +139,8 @@ require __DIR__ . '/includes/header.php';
   </section>
 
   <section class="bg-white rounded-xl shadow p-4">
-    <h2 class="font-semibold mb-3">Status MikroTik Saat Ini</h2>
-    <?php if (!mikrotikIsConfigured()): ?>
-      <div class="rounded-4 border border-amber-200 bg-amber-50 p-3 small text-amber-800">Belum dikonfigurasi. Isi host, port, username, dan password di bawah ini.</div>
-    <?php elseif ($mikrotikError !== ''): ?>
-      <div class="rounded-4 border border-red-200 bg-red-50 p-3 small text-red-800">Koneksi MikroTik gagal: <?= e($mikrotikError) ?></div>
-    <?php else: ?>
-      <div class="rounded-4 border border-emerald-200 bg-emerald-50 p-3 small text-emerald-800 mb-3">Koneksi berhasil ke router <b><?= e((string) ($mikrotikInfo['identity'] ?? '-')) ?></b>.</div>
-      <table class="table table-sm align-middle mb-0">
-        <tr><td class="text-secondary">Identity</td><td><?= e((string) ($mikrotikInfo['identity'] ?? '-')) ?></td></tr>
-        <tr><td class="text-secondary">Version</td><td><?= e((string) ($mikrotikInfo['version'] ?? '-')) ?></td></tr>
-        <tr><td class="text-secondary">Board</td><td><?= e((string) ($mikrotikInfo['board_name'] ?? '-')) ?></td></tr>
-        <tr><td class="text-secondary">Uptime</td><td><?= e((string) ($mikrotikInfo['uptime'] ?? '-')) ?></td></tr>
-      </table>
-    <?php endif; ?>
+    <h2 class="font-semibold mb-3">Catatan Sistem</h2>
+    <div class="rounded-4 border border-sky-200 bg-sky-50 p-3 small text-sky-800">Fitur API disembunyikan sementara supaya aplikasi tetap ringan. Nanti bisa diaktifkan lagi saat alur paling efisiennya sudah diputuskan.</div>
 
     <hr class="my-4">
 
@@ -178,42 +156,8 @@ require __DIR__ . '/includes/header.php';
 </div>
 
 <section class="bg-white rounded-xl shadow p-4 mt-4">
-  <h2 class="font-semibold mb-3">Konfigurasi MikroTik API + Integrasi Tambahan</h2>
-  <form method="post" class="space-y-4">
-    <input type="hidden" name="action" value="update_api">
-
-    <div class="rounded-4 border p-3 bg-light">
-      <div class="fw-semibold mb-2">Koneksi MikroTik RouterOS</div>
-      <div class="grid md:grid-cols-2 gap-3">
-        <div><label class="text-sm">Nama Router / Catatan</label><input name="mikrotik_router_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('mikrotik_router_name')) ?>" placeholder="contoh: Router POP Utama"></div>
-        <div><label class="text-sm">Host / IP MikroTik</label><input name="mikrotik_host" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('mikrotik_host')) ?>" placeholder="contoh: 192.168.88.1"></div>
-        <div><label class="text-sm">Port API</label><input name="mikrotik_port" type="number" min="1" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('mikrotik_port', '8728')) ?>"></div>
-        <div><label class="text-sm">Timeout (detik)</label><input name="mikrotik_timeout" type="number" min="3" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('mikrotik_timeout', '10')) ?>"></div>
-        <div><label class="text-sm">Username API</label><input name="mikrotik_username" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('mikrotik_username')) ?>"></div>
-        <div><label class="text-sm">Password API</label><input name="mikrotik_password" type="password" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('mikrotik_password')) ?>"></div>
-      </div>
-      <label class="inline-flex items-center gap-2 text-sm mt-3"><input type="checkbox" name="mikrotik_use_ssl" <?= appSettingBool('mikrotik_use_ssl', false) ? 'checked' : '' ?>> Gunakan SSL (misal port 8729)</label>
-      <div class="text-xs text-slate-500 mt-2">App ini sudah mendukung port API custom dari sisi web. Default RouterOS biasanya 8728 tanpa SSL, atau 8729 dengan SSL.</div>
-    </div>
-
-    <div class="rounded-4 border p-3 bg-light">
-      <div class="fw-semibold mb-2">API / Integrasi Lain (opsional)</div>
-      <div class="grid md:grid-cols-2 gap-3">
-        <div><label class="text-sm">Provider API</label><input name="api_provider" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('api_provider', 'MikroTik RouterOS / Custom API')) ?>"></div>
-        <div><label class="text-sm">Base URL API</label><input name="api_base_url" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('api_base_url')) ?>" placeholder="https://api.example.com"></div>
-        <div><label class="text-sm">API Token</label><input name="api_token" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('api_token')) ?>"></div>
-        <div><label class="text-sm">API Username</label><input name="api_username" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('api_username')) ?>"></div>
-        <div><label class="text-sm">API Password</label><input name="api_password" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('api_password')) ?>"></div>
-        <div><label class="text-sm">API Secret / Key Tambahan</label><input name="api_secret" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(appSettingText('api_secret')) ?>"></div>
-      </div>
-      <div class="mt-3">
-        <label class="text-sm">Catatan Integrasi API</label>
-        <textarea name="api_notes" rows="4" class="mt-1 w-full border rounded px-3 py-2"><?= e(appSettingText('api_notes')) ?></textarea>
-      </div>
-    </div>
-
-    <button class="bg-sky-700 text-white rounded px-4 py-2">Simpan Setting API</button>
-  </form>
+  <h2 class="font-semibold mb-3">Pengaturan Tambahan</h2>
+  <div class="rounded-4 border border-slate-200 bg-slate-50 p-3 small text-slate-700">Bagian API disembunyikan sementara. Saat dibutuhkan lagi, pengaturan koneksi bisa dimunculkan kembali tanpa mengganggu data billing yang sudah ada.</div>
 </section>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

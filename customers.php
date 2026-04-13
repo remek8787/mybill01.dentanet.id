@@ -156,32 +156,17 @@ require __DIR__ . '/includes/header.php';
 <section class="page-ornament page-ornament--gold mb-4">
   <div class="page-ornament-kicker"><i class="fa-solid fa-users-viewfinder me-2"></i>Manajemen Pelanggan</div>
   <h1 class="page-ornament-title">Pelanggan RT/RW Net</h1>
-  <p class="page-ornament-text">Input pelanggan, pilih secret MikroTik, atur layanan, dan lihat status isolir dengan nuansa batik yang lebih mewah.</p>
+  <p class="page-ornament-text">Input pelanggan, atur layanan, paket, dan wilayah dengan fokus ke billing inti yang ringan dan rapi.</p>
 </section>
 
 <div class="grid lg:grid-cols-3 gap-4">
   <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--form">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
       <h2 class="font-semibold mb-0"><?= $editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan RT/RW Net' ?></h2>
-      <a href="mikrotik.php" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-rotate me-1"></i>Sinkron MikroTik</a>
     </div>
-    <?php if (!mikrotikIsConfigured()): ?>
-      <div class="rounded-3 border border-amber-200 bg-amber-50 p-3 small text-amber-800 mb-3">
-        Setting MikroTik belum diisi. Isi dulu di menu <b>Pengaturan</b> supaya dropdown secret dan profile otomatis muncul.
-      </div>
-    <?php elseif ($mikrotikError !== ''): ?>
-      <div class="rounded-3 border border-red-200 bg-red-50 p-3 small text-red-800 mb-3">
-        Gagal ambil data MikroTik: <?= e($mikrotikError) ?>
-      </div>
-    <?php elseif (!$mikrotikSnapshotMeta): ?>
-      <div class="rounded-3 border border-sky-200 bg-sky-50 p-3 small text-sky-800 mb-3">
-        Cache MikroTik belum tersedia. Buka menu <b>MikroTik API</b> lalu tekan <b>Refresh Cache</b> supaya daftar secret dan profile masuk tanpa bikin halaman ini berat.
-      </div>
-    <?php else: ?>
-      <div class="rounded-3 border border-emerald-200 bg-emerald-50 p-3 small text-emerald-800 mb-3">
-        Data MikroTik siap dipilih dari cache. Secret: <b><?= count($mikrotikSecrets) ?></b> • Profile: <b><?= count($mikrotikProfiles) ?></b> • Cache: <b><?= e((string) ($mikrotikSnapshotMeta['fetched_at'] ?? '-')) ?></b>
-      </div>
-    <?php endif; ?>
+    <div class="rounded-3 border border-sky-200 bg-sky-50 p-3 small text-sky-800 mb-3">
+      Fitur API disembunyikan sementara. Halaman ini fokus ke data pelanggan dan billing inti.
+    </div>
 
     <form method="post" class="space-y-3 luxe-form">
       <input type="hidden" name="action" value="save_customer">
@@ -231,36 +216,20 @@ require __DIR__ . '/includes/header.php';
           <input name="router_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['router_name'] ?? '')) ?>" placeholder="opsional nama router / site">
         </div>
       </div>
-      <div>
-        <label class="text-sm">Username PPPoE / Secret MikroTik</label>
-        <select name="mikrotik_secret_id" id="mikrotik_secret_id" class="mt-1 w-full border rounded px-3 py-2">
-          <option value="">Pilih dari MikroTik (opsional)</option>
-          <?php foreach ($mikrotikSecrets as $secret): ?>
-            <?php $selected = ((string) ($editCustomer['mikrotik_secret_id'] ?? '') === (string) ($secret['id'] ?? '')); ?>
-            <option value="<?= e((string) ($secret['id'] ?? '')) ?>" data-username="<?= e((string) ($secret['name'] ?? '')) ?>" data-profile="<?= e((string) ($secret['profile'] ?? '')) ?>" <?= $selected ? 'selected' : '' ?>><?= e((string) ($secret['name'] ?? '-')) ?> • <?= e((string) ($secret['profile'] ?? '-')) ?> • <?= e(((string) ($secret['disabled'] ?? 'false')) === 'true' ? 'disabled' : 'active') ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
       <div class="grid md:grid-cols-2 gap-3">
         <div>
-          <label class="text-sm">Username Layanan</label>
+          <label class="text-sm">Username / ID Layanan</label>
           <input name="service_username" id="service_username" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['service_username'] ?? '')) ?>" placeholder="otomatis terisi dari secret, tapi masih bisa diedit">
         </div>
         <div>
-          <label class="text-sm">Profile MikroTik</label>
-          <input name="mikrotik_profile_name" id="mikrotik_profile_name" list="mikrotik_profile_options" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['mikrotik_profile_name'] ?? '')) ?>" placeholder="bisa pilih dari daftar atau ketik manual">
-          <datalist id="mikrotik_profile_options">
-            <?php foreach ($mikrotikProfiles as $profile): ?>
-              <?php $profileName = (string) ($profile['name'] ?? ''); ?>
-              <option value="<?= e($profileName) ?>"></option>
-            <?php endforeach; ?>
-          </datalist>
+          <label class="text-sm">Catatan Layanan / Profil</label>
+          <input name="mikrotik_profile_name" id="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['mikrotik_profile_name'] ?? '')) ?>" placeholder="opsional, misal profile paket / catatan teknis">
         </div>
       </div>
       <div class="grid md:grid-cols-3 gap-3">
         <div>
-          <label class="text-sm">API Customer ID</label>
-          <input name="api_customer_id" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['api_customer_id'] ?? '')) ?>" placeholder="untuk mapping eksternal">
+          <label class="text-sm">ID Referensi Pelanggan</label>
+          <input name="api_customer_id" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['api_customer_id'] ?? '')) ?>" placeholder="opsional untuk catatan internal">
         </div>
         <div>
           <label class="text-sm">Status Pelanggan</label>
