@@ -47,20 +47,35 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
       </div>
 
       <nav class="side-nav">
-        <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</a>
-        <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="fa-solid fa-users-viewfinder me-2"></i>Data Pelanggan</a>
-        <a class="side-link <?= $currentPage === 'areas.php' ? 'active' : '' ?>" href="areas.php"><i class="fa-solid fa-map-location-dot me-2"></i>Master Wilayah</a>
-        <a class="side-link <?= $currentPage === 'customers_paid.php' ? 'active' : '' ?>" href="customers_paid.php"><i class="fa-solid fa-user-check me-2"></i>Pelanggan Lunas</a>
-        <a class="side-link <?= $currentPage === 'customers_unpaid.php' ? 'active' : '' ?>" href="customers_unpaid.php"><i class="fa-solid fa-user-clock me-2"></i>Belum Lunas</a>
-        <a class="side-link <?= $currentPage === 'income_report.php' ? 'active' : '' ?>" href="income_report.php"><i class="fa-solid fa-wallet me-2"></i>Pemasukan</a>
-        <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="fa-solid fa-box-open me-2"></i>Paket</a>
-        <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="fa-solid fa-file-circle-plus me-2"></i>Generate Billing</a>
-        <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoice</a>
-        <?php if (($user['role'] ?? '') === 'admin'): ?>
-          <a class="side-link <?= $currentPage === 'users.php' ? 'active' : '' ?>" href="users.php"><i class="fa-solid fa-user-shield me-2"></i>Users</a>
-          <a class="side-link <?= $currentPage === 'settings.php' ? 'active' : '' ?>" href="settings.php"><i class="fa-solid fa-sliders me-2"></i>Pengaturan</a>
-        <?php endif; ?>
-        <a class="side-link <?= $currentPage === 'profile.php' ? 'active' : '' ?>" href="profile.php"><i class="fa-solid fa-id-badge me-2"></i>Profil</a>
+        <div class="sidebar-section-title">Ringkasan</div>
+        <div class="side-nav-group">
+          <a class="side-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>" href="dashboard.php"><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</a>
+          <a class="side-link <?= $currentPage === 'income_report.php' ? 'active' : '' ?>" href="income_report.php"><i class="fa-solid fa-wallet me-2"></i>Pemasukan</a>
+        </div>
+
+        <div class="sidebar-section-title">Operasional Billing</div>
+        <div class="side-nav-group">
+          <a class="side-link <?= $currentPage === 'customers.php' ? 'active' : '' ?>" href="customers.php"><i class="fa-solid fa-users-viewfinder me-2"></i>Data Pelanggan</a>
+          <a class="side-link <?= $currentPage === 'areas.php' ? 'active' : '' ?>" href="areas.php"><i class="fa-solid fa-map-location-dot me-2"></i>Master Wilayah</a>
+          <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="fa-solid fa-box-open me-2"></i>Paket</a>
+          <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="fa-solid fa-file-circle-plus me-2"></i>Generate Billing</a>
+          <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoice</a>
+        </div>
+
+        <div class="sidebar-section-title">Monitoring</div>
+        <div class="side-nav-group">
+          <a class="side-link <?= $currentPage === 'customers_paid.php' ? 'active' : '' ?>" href="customers_paid.php"><i class="fa-solid fa-user-check me-2"></i>Pelanggan Lunas</a>
+          <a class="side-link <?= $currentPage === 'customers_unpaid.php' ? 'active' : '' ?>" href="customers_unpaid.php"><i class="fa-solid fa-user-clock me-2"></i>Belum Lunas</a>
+        </div>
+
+        <div class="sidebar-section-title">Akun</div>
+        <div class="side-nav-group">
+          <?php if (($user['role'] ?? '') === 'admin'): ?>
+            <a class="side-link <?= $currentPage === 'users.php' ? 'active' : '' ?>" href="users.php"><i class="fa-solid fa-user-shield me-2"></i>Users</a>
+            <a class="side-link <?= $currentPage === 'settings.php' ? 'active' : '' ?>" href="settings.php"><i class="fa-solid fa-sliders me-2"></i>Pengaturan</a>
+          <?php endif; ?>
+          <a class="side-link <?= $currentPage === 'profile.php' ? 'active' : '' ?>" href="profile.php"><i class="fa-solid fa-id-badge me-2"></i>Profil</a>
+        </div>
       </nav>
     <?php endif; ?>
   </aside>

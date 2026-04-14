@@ -5,15 +5,38 @@ declare(strict_types=1);
 require_once __DIR__ . '/functions.php';
 requireAuth(['admin', 'staff']);
 
+function nextCustomerNo(PDO $pdo): string
+{
+    $numbers = $pdo->query("SELECT customer_no FROM customers WHERE customer_no LIKE 'DSA%'")->fetchAll(PDO::FETCH_COLUMN);
+    $max = 0;
+    foreach ($numbers as $number) {
+        $value = strtoupper(trim((string) $number));
+        if (preg_match('/^DSA(\d{4,})$/', $value, $matches)) {
+            $max = max($max, (int) $matches[1]);
+        }
+    }
+
+    do {
+        $max++;
+        $candidate = 'DSA' . str_pad((string) $max, 4, '0', STR_PAD_LEFT);
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM customers WHERE customer_no = :customer_no');
+        $stmt->execute([':customer_no' => $candidate]);
+        $exists = (int) $stmt->fetchColumn() > 0;
+    } while ($exists);
+
+    return $candidate;
+}
+
 $pdo = db();
 $user = currentUser();
+$nextSuggestedCustomerNo = nextCustomerNo($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'save_customer') {
         $id = (int) ($_POST['id'] ?? 0);
-        $customerNo = trim((string) ($_POST['customer_no'] ?? ''));
+        $customerNo = strtoupper(trim((string) ($_POST['customer_no'] ?? '')));
         $fullName = trim((string) ($_POST['full_name'] ?? ''));
         $address = trim((string) ($_POST['address'] ?? ''));
         $phone = trim((string) ($_POST['phone'] ?? ''));
@@ -36,12 +59,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        if ($customerNo === '') {
+            $customerNo = nextCustomerNo($pdo);
+        }
+
         if (!in_array($status, ['active', 'suspended', 'inactive'], true)) {
             $status = 'active';
         }
 
         if (!in_array($serviceType, ['pppoe', 'hotspot', 'static', 'other'], true)) {
             $serviceType = 'pppoe';
+        }
+
+        if ($serviceUsername === '') {
+            $serviceUsername = $customerNo;
         }
 
         if ($mikrotikProfileName === '' && $packageId > 0) {
@@ -135,17 +166,42 @@ if ($editId > 0) {
 }
 
 $areaFilter = trim((string) ($_GET['area_filter'] ?? ''));
+$statusFilter = trim((string) ($_GET['status_filter'] ?? ''));
+$search = trim((string) ($_GET['q'] ?? ''));
+
 $packages = $pdo->query('SELECT * FROM packages WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
 $areas = $pdo->query('SELECT * FROM areas WHERE is_active = 1 ORDER BY name ASC')->fetchAll();
 
-$sqlCustomers = 'SELECT c.*, p.name AS package_name, p.speed, p.mikrotik_profile_name AS package_mikrotik_profile
+$sqlCustomers = 'SELECT c.*, p.name AS package_name, p.speed, p.mikrotik_profile_name AS package_mikrotik_profile,
+        (SELECT i.status FROM invoices i WHERE i.customer_id = c.id ORDER BY i.period_year DESC, i.period_month DESC, i.id DESC LIMIT 1) AS latest_invoice_status,
+        (SELECT i.period_month FROM invoices i WHERE i.customer_id = c.id ORDER BY i.period_year DESC, i.period_month DESC, i.id DESC LIMIT 1) AS latest_invoice_month,
+        (SELECT i.period_year FROM invoices i WHERE i.customer_id = c.id ORDER BY i.period_year DESC, i.period_month DESC, i.id DESC LIMIT 1) AS latest_invoice_year,
+        (SELECT i.paid_at FROM invoices i WHERE i.customer_id = c.id AND i.status = "paid" ORDER BY i.paid_at DESC, i.id DESC LIMIT 1) AS latest_paid_at,
+        (SELECT COUNT(*) FROM invoices i WHERE i.customer_id = c.id AND i.status = "unpaid") AS unpaid_invoice_count
     FROM customers c
     LEFT JOIN packages p ON p.id = c.package_id';
 $paramsCustomers = [];
+$where = [];
+
 if ($areaFilter !== '') {
-    $sqlCustomers .= ' WHERE c.area = :area';
+    $where[] = 'c.area = :area';
     $paramsCustomers[':area'] = $areaFilter;
 }
+
+if (in_array($statusFilter, ['active', 'suspended', 'inactive'], true)) {
+    $where[] = 'c.status = :status';
+    $paramsCustomers[':status'] = $statusFilter;
+}
+
+if ($search !== '') {
+    $where[] = '(c.full_name LIKE :q OR c.customer_no LIKE :q OR c.phone LIKE :q OR c.area LIKE :q OR c.address LIKE :q OR c.router_name LIKE :q OR c.service_username LIKE :q)';
+    $paramsCustomers[':q'] = '%' . $search . '%';
+}
+
+if ($where) {
+    $sqlCustomers .= ' WHERE ' . implode(' AND ', $where);
+}
+
 $sqlCustomers .= ' ORDER BY c.id DESC';
 $stmtCustomers = $pdo->prepare($sqlCustomers);
 $stmtCustomers->execute($paramsCustomers);
@@ -154,6 +210,10 @@ $customers = $stmtCustomers->fetchAll();
 $activeCustomers = 0;
 $suspendedCustomers = 0;
 $inactiveCustomers = 0;
+$withIdCustomers = 0;
+$uniqueAreas = [];
+$uniqueRouters = [];
+$totalUnpaidInvoices = 0;
 foreach ($customers as $customerRow) {
     $statusValue = (string) ($customerRow['status'] ?? 'active');
     if ($statusValue === 'suspended') {
@@ -163,6 +223,22 @@ foreach ($customers as $customerRow) {
     } else {
         $activeCustomers++;
     }
+
+    if (trim((string) ($customerRow['customer_no'] ?? '')) !== '') {
+        $withIdCustomers++;
+    }
+
+    $areaName = trim((string) ($customerRow['area'] ?? ''));
+    if ($areaName !== '') {
+        $uniqueAreas[$areaName] = true;
+    }
+
+    $routerName = trim((string) ($customerRow['router_name'] ?? ''));
+    if ($routerName !== '') {
+        $uniqueRouters[$routerName] = true;
+    }
+
+    $totalUnpaidInvoices += (int) ($customerRow['unpaid_invoice_count'] ?? 0);
 }
 
 require __DIR__ . '/includes/header.php';
@@ -171,14 +247,37 @@ require __DIR__ . '/includes/header.php';
 <section class="page-ornament page-ornament--gold mb-4">
   <div class="page-ornament-kicker"><i class="fa-solid fa-users-viewfinder me-2"></i>Manajemen Pelanggan</div>
   <h1 class="page-ornament-title">Pelanggan RT/RW Net</h1>
-  <p class="page-ornament-text">Input pelanggan, atur layanan, paket, dan wilayah dengan fokus ke billing inti yang ringan, cepat, dan mudah dibaca.</p>
+  <p class="page-ornament-text">Saya adaptasi pola referensi e-billing ke versi yang lebih rapi untuk app kita, fokus di ID pelanggan, layanan aktif, status billing, area, dan router tanpa menu yang gemuk.</p>
+</section>
+
+<section class="billing-kpi-strip mb-4">
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">ID pelanggan berikutnya</div>
+    <div class="billing-kpi-strip__value"><?= e($nextSuggestedCustomerNo) ?></div>
+    <div class="billing-kpi-strip__note">Format default DSA + 4 digit</div>
+  </div>
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Sudah punya ID</div>
+    <div class="billing-kpi-strip__value"><?= $withIdCustomers ?></div>
+    <div class="billing-kpi-strip__note">Dari <?= count($customers) ?> pelanggan di filter sekarang</div>
+  </div>
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Area aktif</div>
+    <div class="billing-kpi-strip__value"><?= count($uniqueAreas) ?></div>
+    <div class="billing-kpi-strip__note">Wilayah yang terpakai di daftar ini</div>
+  </div>
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Router / POP</div>
+    <div class="billing-kpi-strip__value"><?= count($uniqueRouters) ?></div>
+    <div class="billing-kpi-strip__note">Node layanan yang sudah diisi</div>
+  </div>
 </section>
 
 <section class="isp-mini-grid mb-4">
   <div class="isp-mini-card isp-mini-card--emerald">
     <div class="isp-mini-card__label">Total Pelanggan</div>
     <div class="isp-mini-card__value"><?= count($customers) ?></div>
-    <div class="isp-mini-card__note">Semua data pelanggan tersimpan</div>
+    <div class="isp-mini-card__note">Sesuai filter aktif</div>
   </div>
   <div class="isp-mini-card isp-mini-card--blue">
     <div class="isp-mini-card__label">Pelanggan Aktif</div>
@@ -188,35 +287,53 @@ require __DIR__ . '/includes/header.php';
   <div class="isp-mini-card isp-mini-card--amber">
     <div class="isp-mini-card__label">Suspend</div>
     <div class="isp-mini-card__value"><?= $suspendedCustomers ?></div>
-    <div class="isp-mini-card__note">Perlu perhatian admin</div>
+    <div class="isp-mini-card__note">Perlu follow up</div>
   </div>
   <div class="isp-mini-card isp-mini-card--slate">
     <div class="isp-mini-card__label">Inactive</div>
     <div class="isp-mini-card__value"><?= $inactiveCustomers ?></div>
-    <div class="isp-mini-card__note">Nonaktif sementara</div>
+    <div class="isp-mini-card__note">Tidak ditagihkan dulu</div>
+  </div>
+  <div class="isp-mini-card isp-mini-card--red">
+    <div class="isp-mini-card__label">Invoice Unpaid</div>
+    <div class="isp-mini-card__value"><?= $totalUnpaidInvoices ?></div>
+    <div class="isp-mini-card__note">Akumulasi semua pelanggan di list</div>
   </div>
 </section>
 
-<div class="grid lg:grid-cols-3 gap-4">
+<div class="grid xl:grid-cols-[0.98fr_1.02fr] gap-4">
   <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--form">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
       <h2 class="font-semibold mb-0"><?= $editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan RT/RW Net' ?></h2>
     </div>
-    <div class="rounded-3 border border-sky-200 bg-sky-50 p-3 small text-sky-800 mb-3">
-      Halaman ini fokus ke data pelanggan, layanan, dan status billing tanpa beban integrasi tambahan.
+
+    <div class="billing-note-card mb-3">
+      <div class="billing-note-card__title"><i class="fa-solid fa-lightbulb me-2"></i>Pola data yang saya pakai</div>
+      <ul class="billing-note-card__list mb-0">
+        <li>ID pelanggan default auto format <b>DSA0001</b>, <b>DSA0002</b>, dan seterusnya.</li>
+        <li>Kalau username layanan kosong, sistem akan samakan dulu ke <b>ID pelanggan</b>.</li>
+        <li>Tujuannya biar data pelanggan, invoice, dan pencarian lapangan lebih konsisten.</li>
+      </ul>
     </div>
 
     <form method="post" class="space-y-3 luxe-form">
       <input type="hidden" name="action" value="save_customer">
       <input type="hidden" name="id" value="<?= (int) ($editCustomer['id'] ?? 0) ?>">
+
       <div>
-        <label class="text-sm">No Pelanggan</label>
-        <input name="customer_no" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['customer_no'] ?? '')) ?>" placeholder="misal CUST-001">
+        <div class="d-flex justify-content-between align-items-center gap-2">
+          <label class="text-sm mb-0">ID Pelanggan</label>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="fillSuggestedId" data-suggested-id="<?= e($nextSuggestedCustomerNo) ?>"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Pakai ID berikutnya</button>
+        </div>
+        <input name="customer_no" id="customer_no" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['customer_no'] ?? '')) ?>" placeholder="kosongkan untuk auto DSAxxxx">
+        <div class="form-hint-text">ID ini akan ditonjolkan di invoice, daftar pelanggan, dan pencarian cepat.</div>
       </div>
+
       <div>
         <label class="text-sm">Nama Lengkap</label>
         <input name="full_name" required class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['full_name'] ?? '')) ?>">
       </div>
+
       <div class="grid md:grid-cols-2 gap-3">
         <div>
           <label class="text-sm">No HP</label>
@@ -232,10 +349,12 @@ require __DIR__ . '/includes/header.php';
           </datalist>
         </div>
       </div>
+
       <div>
         <label class="text-sm">Alamat</label>
         <textarea name="address" rows="2" class="mt-1 w-full border rounded px-3 py-2"><?= e((string) ($editCustomer['address'] ?? '')) ?></textarea>
       </div>
+
       <div>
         <label class="text-sm">Paket Internet</label>
         <select name="package_id" id="package_id" class="mt-1 w-full border rounded px-3 py-2">
@@ -245,6 +364,7 @@ require __DIR__ . '/includes/header.php';
           <?php endforeach; ?>
         </select>
       </div>
+
       <div class="grid md:grid-cols-2 gap-3">
         <div>
           <label class="text-sm">Jenis Layanan</label>
@@ -259,16 +379,21 @@ require __DIR__ . '/includes/header.php';
           <input name="router_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['router_name'] ?? '')) ?>" placeholder="opsional nama router / site">
         </div>
       </div>
+
       <div class="grid md:grid-cols-2 gap-3">
         <div>
-          <label class="text-sm">Username / ID Layanan</label>
-          <input name="service_username" id="service_username" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['service_username'] ?? '')) ?>" placeholder="otomatis terisi dari secret, tapi masih bisa diedit">
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <label class="text-sm mb-0">Username / ID Layanan</label>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="copyIdToService"><i class="fa-solid fa-arrows-to-dot me-1"></i>Samakan dengan ID</button>
+          </div>
+          <input name="service_username" id="service_username" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['service_username'] ?? '')) ?>" placeholder="default mengikuti ID pelanggan kalau kosong">
         </div>
         <div>
           <label class="text-sm">Catatan Layanan / Profil</label>
           <input name="mikrotik_profile_name" id="mikrotik_profile_name" class="mt-1 w-full border rounded px-3 py-2" value="<?= e((string) ($editCustomer['mikrotik_profile_name'] ?? '')) ?>" placeholder="opsional, misal paket rumahan / catatan teknis">
         </div>
       </div>
+
       <div class="grid md:grid-cols-3 gap-3">
         <div>
           <label class="text-sm">ID Referensi Pelanggan</label>
@@ -287,14 +412,17 @@ require __DIR__ . '/includes/header.php';
           <input type="number" min="1" max="28" name="due_day" class="mt-1 w-full border rounded px-3 py-2" value="<?= (int) ($editCustomer['due_day'] ?? 10) ?>">
         </div>
       </div>
+
       <div>
         <label class="text-sm">Tanggal Join</label>
         <input type="date" name="join_date" class="mt-1 w-full border rounded px-3 py-2" value="<?= e(dateInputValue((string) ($editCustomer['join_date'] ?? ''))) ?>">
       </div>
+
       <div>
         <label class="text-sm">Catatan</label>
         <textarea name="notes" rows="2" class="mt-1 w-full border rounded px-3 py-2"><?= e((string) ($editCustomer['notes'] ?? '')) ?></textarea>
       </div>
+
       <div class="flex gap-2 flex-wrap">
         <button class="btn btn-primary px-4 py-2"><i class="fa-solid fa-floppy-disk me-1"></i>Simpan Pelanggan</button>
         <?php if ($editCustomer): ?>
@@ -304,64 +432,93 @@ require __DIR__ . '/includes/header.php';
     </form>
   </section>
 
-  <section class="bg-white rounded-xl shadow p-4 lg:col-span-2 luxe-card luxe-card--table">
+  <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-      <h2 class="font-semibold mb-0">Daftar Pelanggan</h2>
-      <div class="small text-secondary">Menampilkan data pelanggan, layanan, dan status billing dengan layout yang lebih ringkas.</div>
+      <div>
+        <h2 class="font-semibold mb-0">Daftar Pelanggan</h2>
+        <div class="small text-secondary">Versi list lebih informatif, mendekati pola e-billing besar tapi tetap fokus ke kebutuhan billing kita.</div>
+      </div>
+      <a href="bills.php?status=unpaid" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Lihat Piutang</a>
     </div>
-    <form class="grid md:grid-cols-3 gap-2 text-sm mb-4">
+
+    <form class="grid md:grid-cols-4 gap-2 text-sm mb-4">
+      <input type="text" name="q" value="<?= e($search) ?>" placeholder="Cari nama, ID, HP, area, router, username" class="border rounded px-3 py-2">
       <select name="area_filter" class="border rounded px-3 py-2">
         <option value="">Semua wilayah</option>
         <?php foreach ($areas as $areaRow): ?>
           <option value="<?= e((string) $areaRow['name']) ?>" <?= $areaFilter === (string) $areaRow['name'] ? 'selected' : '' ?>><?= e((string) $areaRow['name']) ?></option>
         <?php endforeach; ?>
       </select>
-      <div></div>
+      <select name="status_filter" class="border rounded px-3 py-2">
+        <option value="">Semua status</option>
+        <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active</option>
+        <option value="suspended" <?= $statusFilter === 'suspended' ? 'selected' : '' ?>>Suspended</option>
+        <option value="inactive" <?= $statusFilter === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+      </select>
       <div class="d-flex gap-2">
-        <button class="btn btn-primary"><i class="fa-solid fa-filter me-1"></i>Filter Wilayah</button>
+        <button class="btn btn-primary w-full"><i class="fa-solid fa-filter me-1"></i>Filter</button>
         <a href="customers.php" class="btn btn-outline-secondary"><i class="fa-solid fa-rotate-left me-1"></i>Reset</a>
       </div>
     </form>
+
     <div class="overflow-auto table-wrap">
-      <table class="min-w-full text-sm js-data-table table-soft" data-page-size="10">
+      <table class="min-w-full text-sm js-data-table table-soft table-card-mode" data-page-size="10">
         <thead>
           <tr class="text-left border-b">
-            <th class="py-2 pr-3">Pelanggan</th>
-            <th class="py-2 pr-3">Paket / Layanan</th>
-            <th class="py-2 pr-3">Layanan</th>
-            <th class="py-2 pr-3">Status</th>
+            <th class="py-2 pr-3">Identitas</th>
+            <th class="py-2 pr-3">Paket & Area</th>
+            <th class="py-2 pr-3">Layanan Teknis</th>
+            <th class="py-2 pr-3">Status Billing</th>
             <th class="py-2 pr-3">Aksi</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($customers as $customer): ?>
+            <?php
+              $latestPeriod = '-';
+              if (!empty($customer['latest_invoice_month']) && !empty($customer['latest_invoice_year'])) {
+                  $latestPeriod = periodLabel((int) $customer['latest_invoice_month'], (int) $customer['latest_invoice_year']);
+              }
+              $latestInvoiceStatus = (string) ($customer['latest_invoice_status'] ?? '');
+              $unpaidInvoiceCount = (int) ($customer['unpaid_invoice_count'] ?? 0);
+            ?>
             <tr class="border-b align-top">
               <td class="py-2 pr-3">
-                <div class="font-semibold"><?= e((string) $customer['full_name']) ?></div>
-                <div class="text-xs text-slate-500">No: <?= e((string) ($customer['customer_no'] ?: '-')) ?> • HP: <?= e((string) ($customer['phone'] ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Area: <?= e((string) ($customer['area'] ?: '-')) ?> • Join: <?= e(formatDateId((string) ($customer['join_date'] ?? ''), '-')) ?></div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                  <div class="font-semibold"><?= e((string) $customer['full_name']) ?></div>
+                  <span class="id-pill">ID <?= e((string) (($customer['customer_no'] ?: '-') ?: '-')) ?></span>
+                </div>
+                <div class="text-xs text-slate-500">HP: <?= e((string) ($customer['phone'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Join: <?= e(formatDateId((string) ($customer['join_date'] ?? ''), '-')) ?></div>
                 <div class="text-xs text-slate-500"><?= e((string) ($customer['address'] ?: '-')) ?></div>
               </td>
               <td class="py-2 pr-3">
                 <div><?= e(packageLabel($customer)) ?></div>
-                <div class="text-xs text-slate-500">Layanan: <?= e(serviceTypeLabel((string) ($customer['service_type'] ?? 'pppoe'))) ?></div>
-                <div class="text-xs text-slate-500">Due day: <?= (int) ($customer['due_day'] ?? 10) ?> • API ID: <?= e((string) ($customer['api_customer_id'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Area: <?= e((string) ($customer['area'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Status layanan: <?= e(serviceTypeLabel((string) ($customer['service_type'] ?? 'pppoe'))) ?></div>
+                <div class="text-xs text-slate-500">Due day: <?= (int) ($customer['due_day'] ?? 10) ?></div>
               </td>
               <td class="py-2 pr-3">
                 <div>ID/User: <?= e((string) ($customer['service_username'] ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Catatan layanan: <?= e((string) (($customer['mikrotik_profile_name'] ?: $customer['package_mikrotik_profile']) ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Lokasi / Router: <?= e((string) ($customer['router_name'] ?: '-')) ?></div>
-                <div class="text-xs text-slate-500">Referensi: <?= e((string) ($customer['api_customer_id'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Router / POP: <?= e((string) ($customer['router_name'] ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Profil: <?= e((string) (($customer['mikrotik_profile_name'] ?: $customer['package_mikrotik_profile']) ?: '-')) ?></div>
+                <div class="text-xs text-slate-500">Ref: <?= e((string) ($customer['api_customer_id'] ?: '-')) ?></div>
               </td>
               <td class="py-2 pr-3">
                 <div class="mb-1"><span class="badge <?= ($customer['status'] ?? '') === 'active' ? 'text-bg-success' : (($customer['status'] ?? '') === 'suspended' ? 'text-bg-warning' : 'text-bg-secondary') ?>"><?= e(customerStatusLabel((string) $customer['status'])) ?></span></div>
-                <div><span class="badge <?= customerIsolationBadgeClass($customer) ?>"><?= customerIsIsolated($customer) ? 'Sedang diisolir' : 'Tidak diisolir' ?></span></div>
-                <div class="text-xs text-slate-500 mt-1">Last sync: <?= e(formatDateTimeId((string) ($customer['last_synced_at'] ?? ''), '-')) ?></div>
+                <div class="mb-1"><span class="badge <?= customerIsolationBadgeClass($customer) ?>"><?= customerIsIsolated($customer) ? 'Sedang diisolir' : 'Tidak diisolir' ?></span></div>
+                <div class="text-xs text-slate-500">Invoice terakhir: <?= e($latestPeriod) ?></div>
+                <div class="text-xs text-slate-500">Status invoice: <?= e($latestInvoiceStatus === 'paid' ? 'Lunas' : ($latestInvoiceStatus === 'unpaid' ? 'Belum Lunas' : '-')) ?></div>
+                <div class="text-xs text-slate-500">Unpaid aktif: <?= $unpaidInvoiceCount ?></div>
+                <div class="text-xs text-slate-500">Bayar terakhir: <?= e(formatDateTimeId((string) ($customer['latest_paid_at'] ?? ''), '-')) ?></div>
               </td>
               <td class="py-2 pr-3">
-                <a class="btn btn-sm btn-outline-secondary" href="customers.php?edit=<?= (int) $customer['id'] ?>"><i class="fa-solid fa-pen-to-square me-1"></i>Edit</a>
+                <div class="d-flex flex-wrap gap-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="customers.php?edit=<?= (int) $customer['id'] ?>"><i class="fa-solid fa-pen-to-square me-1"></i>Edit</a>
+                  <a class="btn btn-sm btn-outline-primary" href="bills.php?q=<?= urlencode((string) (($customer['customer_no'] ?: $customer['service_username'] ?: $customer['full_name']) ?? '')) ?>"><i class="fa-solid fa-file-invoice me-1"></i>Invoice</a>
+                </div>
                 <?php if (($user['role'] ?? '') === 'admin'): ?>
-                  <form method="post" class="inline" onsubmit="return confirm('Hapus pelanggan ini?')">
+                  <form method="post" class="mt-2 inline" onsubmit="return confirm('Hapus pelanggan ini?')">
                     <input type="hidden" name="action" value="delete_customer">
                     <input type="hidden" name="id" value="<?= (int) $customer['id'] ?>">
                     <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash-can me-1"></i>Hapus</button>
@@ -371,7 +528,7 @@ require __DIR__ . '/includes/header.php';
             </tr>
           <?php endforeach; ?>
           <?php if (!$customers): ?>
-            <tr><td colspan="5" class="py-4 text-slate-500">Belum ada pelanggan. Tambah paket dulu lalu masukkan pelanggan dan secret PPPoE-nya.</td></tr>
+            <tr><td colspan="5" class="py-4 text-slate-500">Belum ada pelanggan yang cocok dengan filter. Tambah paket dulu lalu masukkan pelanggan dan ID layanannya.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
@@ -382,42 +539,33 @@ require __DIR__ . '/includes/header.php';
 <script>
 (() => {
   const packageSelect = document.getElementById('package_id');
-  const secretSelect = document.getElementById('mikrotik_secret_id');
+  const customerNoInput = document.getElementById('customer_no');
   const usernameInput = document.getElementById('service_username');
-  const profileSelect = document.getElementById('mikrotik_profile_name');
-
-  const applySecret = () => {
-    if (!secretSelect) return;
-    const option = secretSelect.options[secretSelect.selectedIndex];
-    if (!option) return;
-    const username = option.dataset.username || '';
-    const profile = option.dataset.profile || '';
-    if (username && usernameInput && usernameInput.value.trim() === '') {
-      usernameInput.value = username;
-    }
-    if (profile && profileSelect && profileSelect.value === '') {
-      profileSelect.value = profile;
-    }
-  };
+  const profileInput = document.getElementById('mikrotik_profile_name');
+  const fillSuggestedIdBtn = document.getElementById('fillSuggestedId');
+  const copyIdBtn = document.getElementById('copyIdToService');
 
   const applyPackage = () => {
-    if (!packageSelect || !profileSelect) return;
+    if (!packageSelect || !profileInput) return;
     const option = packageSelect.options[packageSelect.selectedIndex];
     if (!option) return;
     const profile = option.dataset.mikrotikProfile || '';
-    if (profile && profileSelect.value === '') {
-      profileSelect.value = profile;
+    if (profile && profileInput.value.trim() === '') {
+      profileInput.value = profile;
     }
   };
 
-  if (secretSelect && window.TomSelect) {
-    new TomSelect(secretSelect, {
-      create: false,
-      maxItems: 1,
-      searchField: ['text'],
-      placeholder: 'Ketik username secret / profile...'
-    });
-  }
+  const fillSuggestedId = () => {
+    if (!fillSuggestedIdBtn || !customerNoInput) return;
+    if (customerNoInput.value.trim() !== '') return;
+    customerNoInput.value = fillSuggestedIdBtn.dataset.suggestedId || '';
+  };
+
+  const copyIdToService = () => {
+    if (!customerNoInput || !usernameInput) return;
+    if (customerNoInput.value.trim() === '') return;
+    usernameInput.value = customerNoInput.value.trim();
+  };
 
   if (packageSelect && window.TomSelect) {
     new TomSelect(packageSelect, {
@@ -429,7 +577,8 @@ require __DIR__ . '/includes/header.php';
   }
 
   packageSelect?.addEventListener('change', applyPackage);
-  secretSelect?.addEventListener('change', applySecret);
+  fillSuggestedIdBtn?.addEventListener('click', fillSuggestedId);
+  copyIdBtn?.addEventListener('click', copyIdToService);
 })();
 </script>
 

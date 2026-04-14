@@ -83,8 +83,10 @@ $bills = $stmt->fetchAll();
 
 $totalUnpaid = 0;
 $unpaidCustomerIds = [];
+$unpaidCount = 0;
 foreach ($bills as $bill) {
     if (($bill['status'] ?? '') === 'unpaid') {
+        $unpaidCount++;
         $totalUnpaid += invoiceNetAmount($bill);
         $unpaidCustomerIds[(int) ($bill['customer_id'] ?? 0)] = true;
     }
@@ -103,7 +105,30 @@ require __DIR__ . '/includes/header.php';
 <section class="page-ornament page-ornament--rose mb-4">
   <div class="page-ornament-kicker"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Pusat Invoice</div>
   <h1 class="page-ornament-title">Invoice dan Pembayaran</h1>
-  <p class="page-ornament-text">Filter tagihan, monitor piutang, dan proses pembayaran dalam tampilan elegan dengan sentuhan batik emas.</p>
+  <p class="page-ornament-text">Halaman ini saya rapikan agar ritme kerjanya mirip panel billing besar, tapi tetap ringan. Fokusnya cepat cari invoice, lihat piutang, lalu langsung proses pembayaran.</p>
+</section>
+
+<section class="billing-kpi-strip mb-4">
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Invoice hasil filter</div>
+    <div class="billing-kpi-strip__value"><?= count($bills) ?></div>
+    <div class="billing-kpi-strip__note">Semua baris yang sedang tampil</div>
+  </div>
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Belum lunas</div>
+    <div class="billing-kpi-strip__value"><?= $unpaidCount ?></div>
+    <div class="billing-kpi-strip__note">Prioritas follow up</div>
+  </div>
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Pelanggan menunggak</div>
+    <div class="billing-kpi-strip__value"><?= $unpaidCustomerCount ?></div>
+    <div class="billing-kpi-strip__note">Customer dengan invoice unpaid</div>
+  </div>
+  <div class="billing-kpi-strip__item">
+    <div class="billing-kpi-strip__label">Piutang aktif</div>
+    <div class="billing-kpi-strip__value"><?= e(rupiah($totalUnpaid)) ?></div>
+    <div class="billing-kpi-strip__note">Akumulasi filter saat ini</div>
+  </div>
 </section>
 
 <section class="isp-mini-grid mb-4">
@@ -202,7 +227,7 @@ require __DIR__ . '/includes/header.php';
             <td class="py-2 pr-3">
               <span class="badge <?= ($bill['status'] ?? '') === 'paid' ? 'text-bg-success' : 'text-bg-warning' ?>"><?= ($bill['status'] ?? '') === 'paid' ? 'Lunas' : 'Belum Lunas' ?></span>
               <div class="text-xs text-slate-500 mt-1">Bayar: <?= e(formatDateId((string) ($bill['paid_at'] ?? ''), '-')) ?></div>
-              <div class="text-xs mt-1"><span class="badge <?= (($bill['status'] ?? '') === 'suspended') ? 'text-bg-danger' : 'text-bg-success' ?>"><?= (($bill['status'] ?? '') === 'suspended') ? 'Suspend' : 'Normal' ?></span></div>
+              <div class="text-xs mt-1"><span class="badge <?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'text-bg-danger' : 'text-bg-success' ?>"><?= ((int) ($bill['isolated'] ?? 0) === 1) ? 'Sedang diisolir' : 'Normal' ?></span></div>
             </td>
             <td class="py-2 pr-3">
               <a class="btn btn-sm btn-outline-secondary inline-block mb-1" href="bill_print.php?id=<?= (int) $bill['id'] ?>" target="_blank"><i class="fa-solid fa-print me-1"></i>Cetak Invoice</a>
