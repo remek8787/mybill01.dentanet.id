@@ -156,8 +156,14 @@ require __DIR__ . '/includes/header.php';
 
 <section class="bg-white rounded-xl shadow p-4 mb-4 luxe-card luxe-card--table">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h2 class="font-semibold mb-0">Daftar Invoice RT/RW Net</h2>
-    <div class="small text-secondary">Filter pelanggan belum bayar per bulan, lalu lanjut cetak dan proses pembayaran.</div>
+    <div>
+      <h2 class="font-semibold mb-0">Daftar Invoice RT/RW Net</h2>
+      <div class="small text-secondary">Filter pelanggan belum bayar per bulan, lalu lanjut cetak dan proses pembayaran.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="income_report.php?range=month" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-chart-line me-1"></i>Pemasukan</a>
+      <a href="roadmap.php" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-sitemap me-1"></i>Blueprint</a>
+    </div>
   </div>
   <form class="grid md:grid-cols-5 gap-2 text-sm">
     <select name="status" class="border rounded px-3 py-2">
@@ -184,6 +190,54 @@ require __DIR__ . '/includes/header.php';
     <div class="info-card"><div class="info-label">Pelanggan Belum Bayar</div><div class="info-value text-amber-600"><?= $unpaidCustomerCount ?></div></div>
     <div class="info-card"><div class="info-label">Total Piutang Filter</div><div class="info-value text-amber-600"><?= e(rupiah($totalUnpaid)) ?></div></div>
     <div class="info-card"><div class="info-label">Status App</div><div class="info-note">Billing inti aktif</div></div>
+  </div>
+</section>
+
+<section class="grid lg:grid-cols-[1.08fr_0.92fr] gap-4 mb-4">
+  <div class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <div class="section-kicker">Aksi Cepat Invoice</div>
+        <h2 class="font-semibold mb-0">Ritme kerja penagihan</h2>
+      </div>
+      <span class="badge rounded-pill text-bg-warning">Follow Up Mode</span>
+    </div>
+    <div class="quick-module-grid">
+      <a href="bills.php?status=unpaid" class="quick-module-card quick-module-card--amber">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-bell-concierge"></i></div>
+        <div class="quick-module-card__title">Prioritas unpaid</div>
+        <div class="quick-module-card__desc">Fokuskan tampilan ke invoice yang belum lunas agar admin cepat follow up.</div>
+        <div class="quick-module-card__cta">Buka filter <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="income_report.php?range=month" class="quick-module-card quick-module-card--emerald">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="quick-module-card__title">Cek pemasukan</div>
+        <div class="quick-module-card__desc">Bandingkan invoice lunas dengan arus kas bulan berjalan dari laporan pemasukan.</div>
+        <div class="quick-module-card__cta">Lihat report <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="readings.php" class="quick-module-card quick-module-card--blue">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-file-circle-plus"></i></div>
+        <div class="quick-module-card__title">Generate periode baru</div>
+        <div class="quick-module-card__desc">Lanjut ke generate billing setelah review invoice periode berjalan selesai.</div>
+        <div class="quick-module-card__cta">Generate billing <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="roadmap.php" class="quick-module-card quick-module-card--violet">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-sitemap"></i></div>
+        <div class="quick-module-card__title">Blueprint ISP</div>
+        <div class="quick-module-card__desc">Jaga supaya pengembangan invoice tetap sejalan dengan roadmap utama aplikasi.</div>
+        <div class="quick-module-card__cta">Buka roadmap <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="isp-panel-card isp-panel-card--light">
+    <div class="isp-panel-card__title">Checklist penagihan harian</div>
+    <ul class="isp-panel-list mb-0">
+      <li>Buka filter <b>Belum Lunas</b> untuk lihat prioritas penagihan utama.</li>
+      <li>Tandai lunas langsung dari list saat pembayaran sudah tervalidasi.</li>
+      <li>Gunakan cetak invoice / kwitansi saat perlu bukti pembayaran cepat.</li>
+      <li>Setelah piutang rapi, review pemasukan dan lanjut ke generate periode berikutnya.</li>
+    </ul>
   </div>
 </section>
 

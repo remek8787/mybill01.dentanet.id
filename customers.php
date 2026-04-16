@@ -301,8 +301,56 @@ require __DIR__ . '/includes/header.php';
   </div>
 </section>
 
+<section class="grid lg:grid-cols-[1.08fr_0.92fr] gap-4 mb-4">
+  <div class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <div class="section-kicker">Aksi Cepat</div>
+        <h2 class="font-semibold mb-0">Workflow admin pelanggan</h2>
+      </div>
+      <span class="badge rounded-pill text-bg-primary">Phase 1 Active</span>
+    </div>
+    <div class="quick-module-grid">
+      <a href="#form-pelanggan" class="quick-module-card quick-module-card--blue">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-user-plus"></i></div>
+        <div class="quick-module-card__title">Tambah pelanggan</div>
+        <div class="quick-module-card__desc">Masukkan data pelanggan baru dengan ID, area, paket, dan username layanan.</div>
+        <div class="quick-module-card__cta">Isi form <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="bills.php?status=unpaid" class="quick-module-card quick-module-card--amber">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <div class="quick-module-card__title">Ke daftar piutang</div>
+        <div class="quick-module-card__desc">Langsung cek pelanggan yang punya invoice unpaid dan butuh follow up.</div>
+        <div class="quick-module-card__cta">Buka invoice <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="readings.php" class="quick-module-card quick-module-card--emerald">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <div class="quick-module-card__title">Generate billing</div>
+        <div class="quick-module-card__desc">Lanjutkan ke pembuatan invoice periode baru setelah data pelanggan rapi.</div>
+        <div class="quick-module-card__cta">Generate sekarang <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="roadmap.php" class="quick-module-card quick-module-card--violet">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-sitemap"></i></div>
+        <div class="quick-module-card__title">Lihat blueprint ISP</div>
+        <div class="quick-module-card__desc">Pantau roadmap pengembangan supaya arah fitur tetap konsisten.</div>
+        <div class="quick-module-card__cta">Buka blueprint <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="isp-panel-card isp-panel-card--light">
+    <div class="isp-panel-card__title">Checklist data pelanggan yang sehat</div>
+    <ul class="isp-panel-list mb-0">
+      <li>Setiap pelanggan sebaiknya punya <b>ID pelanggan</b>, area, paket, dan due day.</li>
+      <li>Kalau layanan PPPoE dipakai, isi <b>username layanan</b> konsisten dengan ID pelanggan.</li>
+      <li>Untuk operasional lapangan, nama <b>router / POP</b> sebaiknya tidak dibiarkan kosong.</li>
+      <li>Begitu data dasar rapi, baru lanjut generate billing dan follow up invoice.</li>
+    </ul>
+  </div>
+</section>
+
 <div class="grid xl:grid-cols-[0.98fr_1.02fr] gap-4">
-  <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--form">
+  <section id="form-pelanggan" class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--form">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
       <h2 class="font-semibold mb-0"><?= $editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan RT/RW Net' ?></h2>
     </div>
@@ -438,7 +486,10 @@ require __DIR__ . '/includes/header.php';
         <h2 class="font-semibold mb-0">Daftar Pelanggan</h2>
         <div class="small text-secondary">Versi list lebih informatif, mendekati pola e-billing besar tapi tetap fokus ke kebutuhan billing kita.</div>
       </div>
-      <a href="bills.php?status=unpaid" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Lihat Piutang</a>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="bills.php?status=unpaid" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Lihat Piutang</a>
+        <a href="roadmap.php" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-sitemap me-1"></i>Blueprint</a>
+      </div>
     </div>
 
     <form class="grid md:grid-cols-4 gap-2 text-sm mb-4">

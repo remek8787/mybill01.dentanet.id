@@ -140,6 +140,48 @@ require __DIR__ . '/includes/header.php';
   </a>
 </section>
 
+<section class="grid lg:grid-cols-[1.05fr_0.95fr] gap-4 mb-4">
+  <div class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <div class="section-kicker">Aksi Cepat Cashflow</div>
+        <h2 class="font-semibold mb-0">Kontrol pemasukan harian</h2>
+      </div>
+      <span class="badge rounded-pill text-bg-success">Cash In Focus</span>
+    </div>
+    <div class="quick-module-grid">
+      <a href="bills.php?status=unpaid" class="quick-module-card quick-module-card--amber">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <div class="quick-module-card__title">Ke invoice unpaid</div>
+        <div class="quick-module-card__desc">Lompat ke daftar tagihan belum lunas untuk mengejar cashflow aktif.</div>
+        <div class="quick-module-card__cta">Buka invoice <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="customers.php" class="quick-module-card quick-module-card--blue">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-users"></i></div>
+        <div class="quick-module-card__title">Cek pelanggan</div>
+        <div class="quick-module-card__desc">Review data pelanggan aktif, area, dan layanan sebelum periode billing berikutnya.</div>
+        <div class="quick-module-card__cta">Buka pelanggan <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+      <a href="roadmap.php" class="quick-module-card quick-module-card--violet">
+        <div class="quick-module-card__icon"><i class="fa-solid fa-sitemap"></i></div>
+        <div class="quick-module-card__title">Blueprint ISP</div>
+        <div class="quick-module-card__desc">Pastikan modul laporan dan billing tetap jalan sesuai roadmap aplikasi.</div>
+        <div class="quick-module-card__cta">Lihat roadmap <i class="fa-solid fa-arrow-right ms-1"></i></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="isp-panel-card isp-panel-card--light">
+    <div class="isp-panel-card__title">Checklist cashflow owner/admin</div>
+    <ul class="isp-panel-list mb-0">
+      <li>Bandingkan pemasukan hari ini dengan daftar invoice yang baru dilunasi.</li>
+      <li>Kalau pemasukan seret, buka invoice unpaid lalu follow up pelanggan prioritas.</li>
+      <li>Gunakan export saat perlu lapor cepat ke owner atau admin keuangan.</li>
+      <li>Setelah itu, review roadmap untuk fitur reminder dan otomasi tahap berikutnya.</li>
+    </ul>
+  </div>
+</section>
+
 <?php if ($range === 'month'): ?>
 <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table mb-4">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -152,7 +194,10 @@ require __DIR__ . '/includes/header.php';
 
 <section class="bg-white rounded-xl shadow p-4 luxe-card luxe-card--table">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h2 class="font-semibold mb-0"><?= $range === 'today' ? 'Transaksi Lunas Hari Ini' : 'Transaksi Lunas Bulan Ini' ?></h2>
+    <div>
+      <h2 class="font-semibold mb-0"><?= $range === 'today' ? 'Transaksi Lunas Hari Ini' : 'Transaksi Lunas Bulan Ini' ?></h2>
+      <div class="small text-secondary">Pantau transaksi masuk lalu kaitkan ke follow up invoice dan progress collection.</div>
+    </div>
     <div class="d-flex gap-2 flex-wrap">
       <a href="income_report.php?range=today" class="btn btn-sm <?= $range === 'today' ? 'btn-primary' : 'btn-outline-secondary' ?>">Hari Ini</a>
       <a href="income_report.php?range=month" class="btn btn-sm <?= $range === 'month' ? 'btn-primary' : 'btn-outline-secondary' ?>">Bulan Ini</a>
