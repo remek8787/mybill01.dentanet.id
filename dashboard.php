@@ -100,6 +100,13 @@ $moduleCards = [
         'desc' => 'Pantau pemasukan bulan berjalan dengan tampilan yang lebih ringkas.',
         'tone' => 'violet',
     ],
+    [
+        'href' => 'roadmap.php',
+        'icon' => 'fa-sitemap',
+        'title' => 'Blueprint ISP',
+        'desc' => 'Lihat peta jalan pengembangan billing RT/RW Net yang sedang dieksekusi.',
+        'tone' => 'blue',
+    ],
 ];
 
 require __DIR__ . '/includes/header.php';
@@ -248,6 +255,9 @@ require __DIR__ . '/includes/header.php';
       <div class="isp-panel-card__title">Checklist admin harian</div>
       <ul class="isp-panel-list mb-0">
         <li>Cek invoice mendekati jatuh tempo.</li>
+        <li>Pastikan data pelanggan baru sudah punya paket, area, dan ID pelanggan.</li>
+        <li>Follow up pelanggan unpaid lalu lanjut generate billing bila periode baru dimulai.</li>
+        <li>Review blueprint ISP bila mau lanjut tahap otomasi atau pengembangan modul baru.</li>
         <li>Follow up pelanggan belum lunas bulan berjalan.</li>
         <li>Pastikan pelanggan baru langsung punya ID pelanggan.</li>
       </ul>

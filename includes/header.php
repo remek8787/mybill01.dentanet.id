@@ -60,6 +60,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
           <a class="side-link <?= $currentPage === 'packages.php' ? 'active' : '' ?>" href="packages.php"><i class="fa-solid fa-box-open me-2"></i>Paket</a>
           <a class="side-link <?= $currentPage === 'readings.php' ? 'active' : '' ?>" href="readings.php"><i class="fa-solid fa-file-circle-plus me-2"></i>Generate Billing</a>
           <a class="side-link <?= $currentPage === 'bills.php' ? 'active' : '' ?>" href="bills.php"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoice</a>
+          <a class="side-link <?= $currentPage === 'roadmap.php' ? 'active' : '' ?>" href="roadmap.php"><i class="fa-solid fa-sitemap me-2"></i>Blueprint ISP</a>
         </div>
 
         <div class="sidebar-section-title">Monitoring</div>
